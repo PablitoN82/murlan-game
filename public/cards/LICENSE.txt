@@ -1,0 +1,10 @@
+Four-index SVG playing-card faces generated from Adrian Kennard's
+public-domain SVG playing-card project:
+https://www.me.uk/cards/
+https://codeberg.org/RevK/SVG-playing-cards
+
+The author releases the designs under the CC0 Public Domain licence.
+The selected deck uses standard two-colour suits and integrated indices
+in all four corners.
+
+The files are bundled locally so the game does not contact third-party servers.

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 336" preserveAspectRatio="none">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f7d66d"/>
+      <stop offset="1" stop-color="#b77a19"/>
+    </linearGradient>
+    <symbol id="jester" viewBox="0 0 160 142">
+      <path d="M37 47C24 29 28 12 45 5c3 17 13 23 27 26C65 13 72 3 81 1c10 9 15 19 10 32 15-6 25-15 29-30 18 10 19 29 5 47l-10-9-14 16H55L43 41z" fill="#c82333" stroke="#181818" stroke-width="3"/>
+      <path d="M45 5c3 17 13 23 27 26L55 57 43 41 37 47C24 29 28 12 45 5zM81 1c10 9 15 19 10 32l10 24H72l-1-26C65 13 72 3 81 1zM120 3c18 10 19 29 5 47l-10-9-14 16-10-24c15-6 25-15 29-30z" fill="#17191d" opacity=".98"/>
+      <circle cx="36" cy="48" r="6" fill="url(#gold)" stroke="#181818" stroke-width="2"/>
+      <circle cx="80" cy="2" r="6" fill="url(#gold)" stroke="#181818" stroke-width="2"/>
+      <circle cx="126" cy="49" r="6" fill="url(#gold)" stroke="#181818" stroke-width="2"/>
+      <path d="M55 48h50v36c0 21-12 35-25 35S55 105 55 84z" fill="#f2c9a5" stroke="#181818" stroke-width="3"/>
+      <path d="M55 58c12-7 37-8 50 0V45H55z" fill="url(#gold)" stroke="#181818" stroke-width="3"/>
+      <path d="M65 72l10-4M95 72l-10-4" stroke="#181818" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="70" cy="76" r="2.8" fill="#181818"/>
+      <circle cx="90" cy="76" r="2.8" fill="#181818"/>
+      <path d="M80 78l-3 12h7M68 98c8 7 17 7 25 0" fill="none" stroke="#9d2730" stroke-width="3" stroke-linecap="round"/>
+      <path d="M48 108l15-13c4 10 29 10 34 0l16 13-12 28-21-12-21 12z" fill="#f4f0df" stroke="#181818" stroke-width="3"/>
+      <path d="M48 108l15-13 17 29-21 12z" fill="#c82333"/>
+      <path d="M113 108L97 95l-17 29 21 12z" fill="#17191d"/>
+      <circle cx="80" cy="120" r="5" fill="url(#gold)" stroke="#181818" stroke-width="2"/>
+    </symbol>
+  </defs>
+  <rect x="0.5" y="0.5" width="239" height="335" rx="18" ry="18" fill="#fff" stroke="#ddd7c8"/>
+  <g fill="#c82333" font-family="Georgia,serif" text-anchor="middle">
+    <text x="15" y="27" font-size="22" font-weight="700">J</text>
+    <text x="15" y="44" font-size="13">★</text>
+    <text x="225" y="27" font-size="22" font-weight="700">J</text>
+    <text x="225" y="44" font-size="13">★</text>
+    <g transform="rotate(180 120 168)">
+      <text x="15" y="27" font-size="22" font-weight="700">J</text>
+      <text x="15" y="44" font-size="13">★</text>
+      <text x="225" y="27" font-size="22" font-weight="700">J</text>
+      <text x="225" y="44" font-size="13">★</text>
+    </g>
+  </g>
+  <use href="#jester" x="40" y="34" width="160" height="142"/>
+  <g transform="rotate(180 120 168)">
+    <use href="#jester" x="40" y="34" width="160" height="142"/>
+  </g>
+  <rect x="93" y="154" width="54" height="28" rx="14" fill="#fff" stroke="#b98a30" stroke-width="2"/>
+  <text x="120" y="173" text-anchor="middle" font-family="Georgia,serif" font-size="13" font-weight="700" fill="#c82333">JOKER</text>
+</svg>

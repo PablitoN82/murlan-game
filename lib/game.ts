@@ -95,11 +95,19 @@ function combinations(hand: Card[], current?: Play, mustContain?: string) {
   const found: Card[][] = []; const add = (cards: Card[]) => { if (mustContain && !cards.some((c) => c.id === mustContain)) return; const combo = classify(cards); if (combo && canBeat(combo, cards.length, current)) found.push(cards); };
   hand.forEach((c) => add([c])); const byRank = new Map<Rank, Card[]>(); hand.forEach((c) => byRank.set(c.rank, [...(byRank.get(c.rank) ?? []), c]));
   for (const cards of byRank.values()) { if (cards.length >= 2) add(cards.slice(0, 2)); if (cards.length >= 3) add(cards.slice(0, 3)); if (cards.length === 4) add(cards); }
+  for (let center = 1; center < rankValue("A"); center++) {
+    const middle = byRank.get(ranks[center]) ?? []; const low = byRank.get(ranks[center - 1]) ?? []; const high = byRank.get(ranks[center + 1]) ?? [];
+    if (middle.length >= 3 && low.length && high.length) add([low[0], ...middle.slice(0, 3), high[0]]);
+  }
+  for (let start = 0; start <= rankValue("A") - 4; start++) {
+    const pairs = Array.from({ length: 5 }, (_, i) => (byRank.get(ranks[start + i]) ?? []).slice(0, 2));
+    if (pairs.every((pair) => pair.length === 2)) add(pairs.flat());
+  }
   for (let start = 0; start <= rankValue("A") - 4; start++) for (let len = 5; start + len - 1 <= rankValue("A"); len++) { const seq = Array.from({ length: len }, (_, i) => [...(byRank.get(ranks[start + i]) ?? [])][0]); if (seq.every(Boolean)) add(seq as Card[]); }
   for (const suit of suits) for (let start = 0; start <= rankValue("A") - 4; start++) { const seq = Array.from({ length: 5 }, (_, i) => hand.find((c) => c.suit === suit && rankValue(c.rank) === start + i)); if (seq.every(Boolean)) add(seq as Card[]); }
   return found.sort((a, b) => a.length - b.length || Math.max(...a.map((c) => rankValue(c.rank))) - Math.max(...b.map((c) => rankValue(c.rank))));
 }
-export function runBots(state: GameState) { let guard = 0; while (state.phase === "playing" && state.players[state.turn]?.bot && guard++ < 100) { const seat = state.turn; const options = combinations(state.hands[seat], state.currentPlay, state.openingPlay ? "3-S" : undefined); if (options.length) playInternal(state, seat, options[0]); else passInternal(state, seat); } return state; }
+export function runBots(state: GameState) { let guard = 0; while (state.phase === "playing" && state.players[state.turn]?.bot && guard++ < 100) { const seat = state.turn; const options = combinations(state.hands[seat], state.currentPlay, state.openingPlay ? "3-S" : undefined); if (options.length) playInternal(state, seat, options[0].map((card) => card.id)); else passInternal(state, seat); } return state; }
 export function applyAction(state: GameState, seat: number, action: { type: "play" | "pass" | "new-hand"; cardIds?: string[] }) { if (action.type === "new-hand") { if (state.phase !== "hand-over") throw new Error("La mano non è ancora conclusa."); state.handNumber += 1; state.phase = "playing"; deal(state); return runBots(state); } if (action.type === "play") playInternal(state, seat, action.cardIds ?? []); else passInternal(state, seat); return runBots(state); }
 export function publicState(state: GameState, seat: number): PublicGameState { const { hands, ...rest } = state; return { ...rest, players: state.players.map((p, i) => ({ ...p, cards: hands[i]?.length ?? p.cards })), hand: hands[seat] ?? [] }; }
 export function addHuman(state: GameState, name: string) { if (state.phase !== "waiting" || state.players.length >= state.humanCount) throw new Error("La stanza non può accettare altri giocatori."); const seat = state.players.length; state.players.push({ name, bot: false, team: (seat % 2) as 0 | 1, cards: 0 }); state.log.unshift(`${name} è entrato nella stanza.`); if (state.players.length === state.humanCount) startGame(state); return seat; }

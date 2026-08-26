@@ -1,14 +1,14 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "la-scala-dei-quattro-regni",
+  "name": "murlan-game",
   "pages_build_output_dir": "./dist/pages-deploy",
   "compatibility_date": "2026-05-22",
   "compatibility_flags": ["nodejs_compat"],
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "la-scala-dei-quattro-regni-db",
-      "database_id": "ebaac328-cb2e-4aca-9cb4-5979a65e15a3",
+      "database_name": "murlan-game-db",
+      "database_id": "57a82838-81d7-4e0d-8b40-5ac07aecb92c",
       "migrations_dir": "./drizzle"
     }
   ]

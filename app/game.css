@@ -27,3 +27,41 @@ body{font-family:Inter,"Segoe UI",Arial,sans-serif}
 .game-shell+.lobby-bell{bottom:260px}
 @media(max-width:800px){.game-shell{padding-bottom:226px}.game-header{height:68px;grid-template-columns:46px 1fr auto 1fr 46px}.brand-button{font-size:27px}.score b{font-size:27px}.score small{display:none}.target small{font-size:9px}.target b{font-size:19px}.target{padding:0 12px}.table{height:54vh;min-height:405px}.player-pill{padding:8px 10px}.avatar{width:34px;height:34px}.player-pill b{font-size:13px;max-width:100px}.player-pill small{font-size:11px}.turn-label{font-size:16px}.empty-play p{font-size:17px}.playing-card{width:88px}.playing-card.small{width:72px}.hand-scroll{height:145px;padding-right:145px}.hand-scroll .playing-card{margin-left:-30px}.hand-meta{font-size:11px}.actions button{height:48px;font-size:15px}.play{min-width:120px}.game-shell+.lobby-bell{bottom:232px}}
 @media(max-height:700px){.game-shell{padding-bottom:205px}.table{height:47vh;min-height:340px}.hand-scroll{height:124px}.playing-card{width:76px}.game-shell+.lobby-bell{bottom:210px}}
+
+/* Tavolo telefono: ogni elemento ha una zona propria, senza sovrapposizioni. */
+@media(max-width:800px){
+  .game-shell{padding-bottom:238px;overflow-x:hidden}
+  .game-header{height:64px;grid-template-columns:44px 1fr 74px 1fr 44px}
+  .brand-button{font-size:27px}.score{gap:5px}.score b{font-size:27px}
+  .target{padding:0 8px}.target b{font-size:19px}.icon-button{width:34px;height:34px}
+  .table{height:calc(100dvh - 302px);min-height:420px;max-height:none;width:100%;border:0}
+  .player-pill{gap:7px;padding:7px 10px;max-width:145px;min-width:0}
+  .avatar{width:34px;height:34px;flex:0 0 34px}
+  .player-pill b{font-size:13px;max-width:88px;overflow:hidden;text-overflow:ellipsis}
+  .player-pill small{font-size:11px}
+  .player-pill.p2{top:18px}
+  .player-pill.p1{left:8px;right:auto;top:54%;transform:translateY(-50%)}
+  .player-pill.p3{right:8px;left:auto;top:54%;transform:translateY(-50%)}
+  .player-pill.p0{bottom:24px;max-width:190px}
+  .table-center{top:31%;min-width:0;width:82%;max-width:330px}
+  .turn-label{font-size:16px;margin-bottom:6px}
+  .last-play{min-height:112px}.empty-play p{font-size:17px;line-height:1.25}.empty-play small{font-size:13px}
+  .playing-card.small{width:66px}.pass-line{font-size:11px}
+  .hand-area{height:238px;padding:78px 10px 8px}
+  .hand-meta{position:absolute;top:8px;left:14px;right:14px;margin:0;font-size:10px;gap:10px}
+  .hand-meta span:last-child{text-align:right}
+  .hand-scroll{height:150px;max-width:none;margin:0;padding:8px 12px 4px;justify-content:flex-start}
+  .hand-scroll .playing-card{width:86px;margin-left:-28px}
+  .hand-scroll .playing-card:first-child{margin-left:0}
+  .actions{position:absolute;top:32px;bottom:auto;left:12px;right:12px;height:42px;padding:0;background:transparent;border:0;box-shadow:none;justify-content:flex-end}
+  .actions button{height:42px;font-size:15px}.play{min-width:118px}
+  .game-shell+.lobby-bell{top:72px;right:8px;bottom:auto;padding:8px 11px;font-size:12px;box-shadow:0 7px 20px rgba(0,0,0,.45)}
+  .game-shell~.lobby-panel{top:112px;right:6px;bottom:auto;height:min(520px,calc(100dvh - 126px))}
+}
+
+@media(max-width:420px){
+  .player-pill{max-width:132px;padding:6px 8px}.avatar{width:30px;height:30px;flex-basis:30px}
+  .player-pill b{font-size:12px;max-width:76px}.player-pill small{font-size:10px}
+  .table-center{width:76%}.empty-play p{font-size:15px}
+  .hand-scroll .playing-card{width:82px;margin-left:-27px}
+}

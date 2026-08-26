@@ -20,7 +20,7 @@ body{font-family:Inter,"Segoe UI",Arial,sans-serif}
 .last-play>small{font-size:14px}.pass-line{font-size:13px}
 .playing-card{width:116px;border-radius:9px}.playing-card.small{width:92px;margin-left:-30px}
 .hand-meta{max-width:1320px;font-size:14px;color:#c4c9c2;margin-bottom:10px}
-.hand-scroll{height:180px;padding-top:30px}.hand-scroll .playing-card{margin-left:-40px}
+.hand-scroll{height:180px;max-width:1320px;margin:0 auto;justify-content:flex-start;padding:30px 280px 5px 24px}.hand-scroll .playing-card{margin-left:-40px}
 .actions button{height:56px;font-size:18px}.play{min-width:164px}.pass{font-size:18px}
 .activity{right:18px;top:98px;width:300px;padding:17px}.activity b{font-size:15px}.activity p{font-size:13px;line-height:1.45}
 .game-shell+.lobby-bell{bottom:260px}

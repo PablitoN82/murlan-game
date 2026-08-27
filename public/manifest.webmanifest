@@ -6,6 +6,8 @@
   "scope": "/",
   "id": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "prefer_related_applications": false,
   "background_color": "#080b0c",
   "theme_color": "#080b0c",
   "orientation": "any",

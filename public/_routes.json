@@ -3,6 +3,13 @@
   "include": ["/*"],
   "exclude": [
     "/assets/*",
+    "/cards/*",
+    "/murlan-icon-32.png",
+    "/murlan-icon-192.png",
+    "/murlan-icon-512.png",
+    "/murlan-icon-maskable-512.png",
+    "/murlan-apple-touch-icon.png",
+    "/favicon.ico",
     "/favicon.svg",
     "/manifest.webmanifest",
     "/offline.html",

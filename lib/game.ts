@@ -48,7 +48,10 @@ export function canBeat(candidate: Omit<Play, "seat" | "cards">, cardsLength: nu
   const currentSpecial = current.kind === "bomb" || current.kind === "straight-flush";
   if (special && !currentSpecial) return true;
   if (candidate.kind !== current.kind || cardsLength !== current.cards.length) return false;
-  return candidate.value > current.value || candidate.value === current.value && candidate.suit > current.suit;
+  if (candidate.value > current.value) return true;
+  if (candidate.value < current.value) return false;
+  const suitBreaksTie = candidate.kind === "straight" || candidate.kind === "straight-flush";
+  return suitBreaksTie && candidate.suit > current.suit;
 }
 function nextActive(state: GameState, from: number) { for (let n = 1; n <= 4; n++) { const seat = (from + n) % 4; if (!state.finishOrder.includes(seat)) return seat; } return from; }
 function activeSeats(state: GameState) { return [0, 1, 2, 3].filter((seat) => !state.finishOrder.includes(seat)); }

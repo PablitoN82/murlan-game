@@ -89,3 +89,6 @@ body{font-family:Inter,"Segoe UI",Arial,sans-serif}
 .history-row{display:grid;grid-template-columns:78px 1fr;gap:8px;align-items:center;border-top:1px solid rgba(255,255,255,.08);padding:8px 3px}.history-row small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#aaa;font-weight:700}.history-row>div{display:flex;flex-wrap:wrap;gap:4px}
 .card-token{font-family:Georgia,serif;font-size:15px;font-weight:800;white-space:nowrap}.card-token.red{color:#ef5b52}.card-token.black{color:#f5f2e9}
 @media(max-width:800px){.player-pill.p2{top:16px!important}.table-center{top:52%}.turn-label{margin-bottom:18px}.history-toggle{top:8px;right:8px;font-size:0;padding:9px 11px}.history-toggle:first-letter{font-size:16px}.play-history{top:47px;max-height:52%;width:calc(100% - 16px);right:8px}.card-token{font-size:16px}}
+.history-backdrop{position:absolute;z-index:19;inset:0;border:0;background:rgba(0,0,0,.18);cursor:default}
+.game-shell+.lobby-bell{left:18px;right:auto}
+@media(max-width:800px){.game-shell+.lobby-bell{left:10px;right:auto}}

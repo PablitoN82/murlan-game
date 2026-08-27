@@ -27,6 +27,11 @@ export function createDeck() {
 }
 function shuffle<T>(items: T[]) { const result = [...items]; for (let i = result.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [result[i], result[j]] = [result[j], result[i]]; } return result; }
 function consecutive(values: number[]) { return values.every((value, index) => index === 0 || value === values[index - 1] + 1); }
+function straightValue(values: number[]) {
+  if (consecutive(values) && values.at(-1)! <= rankValue("A")) return values.at(-1)!;
+  const aceLow = values.map((value) => value === rankValue("A") ? -2 : value === rankValue("2") ? -1 : value).sort((a, b) => a - b);
+  return consecutive(aceLow) ? aceLow.at(-1)! : null;
+}
 
 export function classify(cards: Card[]): Omit<Play, "seat" | "cards"> | null {
   if (!cards.length || cards.some((c) => c.suit === "X") && cards.length > 1) return cards.length === 1 ? { kind: "single", value: rankValue(cards[0].rank), suit: suitValue(cards[0].suit) } : null;
@@ -37,8 +42,9 @@ export function classify(cards: Card[]): Omit<Play, "seat" | "cards"> | null {
   if (values.length === 1 && cards.length === 2) return { kind: "pair", value: values[0], suit: maxSuit };
   if (values.length === 1 && cards.length === 3) return { kind: "triple", value: values[0], suit: maxSuit };
   if (values.length === 1 && cards.length === 4) return { kind: "bomb", value: values[0], suit: maxSuit };
-  if (cards.length === 5 && values.length === 5 && consecutive(values) && new Set(cards.map((c) => c.suit)).size === 1) return { kind: "straight-flush", value: values.at(-1)!, suit: maxSuit };
-  if (cards.length >= 5 && values.length === cards.length && consecutive(values) && values.at(-1)! <= rankValue("A")) return { kind: "straight", value: values.at(-1)!, suit: maxSuit };
+  const sequenceValue = values.length === cards.length ? straightValue(values) : null;
+  if (cards.length === 5 && sequenceValue !== null && new Set(cards.map((c) => c.suit)).size === 1) return { kind: "straight-flush", value: sequenceValue, suit: maxSuit };
+  if (cards.length >= 5 && sequenceValue !== null) return { kind: "straight", value: sequenceValue, suit: maxSuit };
   if (cards.length === 5 && values.length === 3 && consecutive(values) && values.map((v) => groups.get(v)!.length).join("") === "131") return { kind: "triple-run", value: values[1], suit: maxSuit };
   if (cards.length === 10 && values.length === 5 && consecutive(values) && values.every((v) => groups.get(v)!.length === 2)) return { kind: "five-pairs", value: values.at(-1)!, suit: maxSuit };
   return null;
@@ -132,7 +138,10 @@ function combinations(hand: Card[], current?: Play, mustContain?: string) {
     if (pairs.every((pair) => pair.length === 2)) add(pairs.flat());
   }
   for (let start = 0; start <= rankValue("A") - 4; start++) for (let len = 5; start + len - 1 <= rankValue("A"); len++) { const seq = Array.from({ length: len }, (_, i) => [...(byRank.get(ranks[start + i]) ?? [])][0]); if (seq.every(Boolean)) add(seq as Card[]); }
+  const lowRanks: Rank[] = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+  for (let len = 5; len <= lowRanks.length; len++) { const seq = lowRanks.slice(0, len).map((rank) => [...(byRank.get(rank) ?? [])][0]); if (seq.every(Boolean)) add(seq as Card[]); }
   for (const suit of suits) for (let start = 0; start <= rankValue("A") - 4; start++) { const seq = Array.from({ length: 5 }, (_, i) => hand.find((c) => c.suit === suit && rankValue(c.rank) === start + i)); if (seq.every(Boolean)) add(seq as Card[]); }
+  for (const suit of suits) { const seq = lowRanks.slice(0, 5).map((rank) => hand.find((c) => c.suit === suit && c.rank === rank)); if (seq.every(Boolean)) add(seq as Card[]); }
   return found.sort((a, b) => current ? a.length - b.length || Math.max(...a.map((c) => rankValue(c.rank))) - Math.max(...b.map((c) => rankValue(c.rank))) : b.length - a.length || Math.max(...a.map((c) => rankValue(c.rank))) - Math.max(...b.map((c) => rankValue(c.rank))));
 }
 export function runBots(state: GameState) {

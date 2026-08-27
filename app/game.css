@@ -107,3 +107,4 @@ body{font-family:Inter,"Segoe UI",Arial,sans-serif}
 @media(max-width:800px){.table-center .pass-line{top:calc(100% + 18px)}}
 .landing+.lobby-bell{position:fixed;top:14px;left:16px;right:auto;bottom:auto}.landing~.lobby-panel{position:fixed;top:64px;left:12px;right:auto;bottom:auto}
 @media(max-width:800px){.landing+.lobby-bell{top:12px;left:10px;right:auto;bottom:auto;padding:9px 13px}.landing~.lobby-panel{top:58px;left:6px;right:auto;bottom:auto;height:min(560px,calc(100dvh - 70px))}}
+.game-shell+.lobby-bell,.landing+.lobby-bell{font-size:0!important}.game-shell+.lobby-bell:after,.landing+.lobby-bell:after{content:"Chat";font-size:16px}

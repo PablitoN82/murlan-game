@@ -17,7 +17,8 @@ const order = ["3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A", "2",
 function cardImage(card: Card) { if (card.rank === "BJ") return "/cards/joker_black_v4.webp"; if (card.rank === "RJ") return "/cards/joker_red_v4.webp"; return `/cards/${rankFile[card.rank]}_of_${suitFile[card.suit]}.svg`; }
 function CardView({ card, copy, selected, small, onClick }: { card: Card; copy: Copy; selected?: boolean; small?: boolean; onClick?: () => void }) {
   const label = card.suit === "X" ? copy.suits.X : `${card.rank} · ${copy.suits[card.suit]}`;
-  return <button type="button" className={`playing-card ${selected ? "selected" : ""} ${small ? "small" : ""}`} onClick={onClick} disabled={!onClick} aria-label={label}><img src={cardImage(card)} alt="" /></button>;
+  const red = card.suit === "H" || card.suit === "D" || card.rank === "RJ"; const symbol = card.suit === "X" ? "✪" : ({ H:"♥", D:"♦", C:"♣", S:"♠" } as Record<string,string>)[card.suit]; const rank = card.rank === "BJ" || card.rank === "RJ" ? "Jolly" : card.rank;
+  return <button type="button" className={`playing-card ${red ? "red-card" : "black-card"} ${selected ? "selected" : ""} ${small ? "small" : ""}`} onClick={onClick} disabled={!onClick} aria-label={label}><span className="card-fallback"><b>{rank}</b><em>{symbol}</em><i>{rank}</i></span><img src={cardImage(card)} alt="" onError={(event) => { event.currentTarget.style.display = "none"; }} /></button>;
 }
 function CardToken({ card }: { card: Card }) {
   const joker = card.rank === "BJ" || card.rank === "RJ";

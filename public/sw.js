@@ -1,4 +1,4 @@
-const CACHE = "murlan-v5-android-install";
+const CACHE = "murlan-v6-offline-cards";
 const cardRanks = ["3","4","5","6","7","8","9","10","jack","queen","king","ace","2"];
 const cardSuits = ["hearts","diamonds","clubs","spades"];
 const CARD_ASSETS = cardSuits.flatMap((suit) => cardRanks.map((rank) => `/cards/${rank}_of_${suit}.svg`)).concat(["/cards/joker_black_v4.webp","/cards/joker_red_v4.webp"]);

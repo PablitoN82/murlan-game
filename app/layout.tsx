@@ -3,9 +3,9 @@ import "./globals.css";
 
 export const metadata: Metadata = {
     metadataBase: new URL("https://murlan-game.dev"),
-    title: "murlan-game.dev",
+    title: "Murlan Game",
     description: "Murlan online per quattro giocatori, a squadre, con amici o bot.",
-    applicationName: "Murlan",
+    applicationName: "Murlan Game",
     manifest: "/manifest.webmanifest",
     icons: {
       icon: [
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
       ],
       apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
     },
-    appleWebApp: { capable: true, title: "Murlan", statusBarStyle: "black-translucent" },
+    appleWebApp: { capable: true, title: "Murlan Game", statusBarStyle: "black-translucent" },
     openGraph: {
       type: "website",
       title: "murlan-game.dev",

@@ -108,3 +108,5 @@ body{font-family:Inter,"Segoe UI",Arial,sans-serif}
 .landing+.lobby-bell{position:fixed;top:14px;left:16px;right:auto;bottom:auto}.landing~.lobby-panel{position:fixed;top:64px;left:12px;right:auto;bottom:auto}
 @media(max-width:800px){.landing+.lobby-bell{top:12px;left:10px;right:auto;bottom:auto;padding:9px 13px}.landing~.lobby-panel{top:58px;left:6px;right:auto;bottom:auto;height:min(560px,calc(100dvh - 70px))}}
 .game-shell+.lobby-bell,.landing+.lobby-bell{font-size:0!important}.game-shell+.lobby-bell:after,.landing+.lobby-bell:after{content:"Chat";font-size:16px}
+.room-wait+.lobby-bell{position:fixed;z-index:90;top:14px;left:16px;right:auto;bottom:auto;font-size:0!important}.room-wait+.lobby-bell:after{content:"Chat";font-size:16px}.room-wait~.lobby-panel{position:fixed;top:64px;left:12px;right:auto;bottom:auto}
+@media(max-width:800px){.room-wait+.lobby-bell{top:12px;left:10px;right:auto;bottom:auto;padding:9px 13px}.room-wait~.lobby-panel{top:58px;left:6px;right:auto;bottom:auto;height:min(560px,calc(100dvh - 70px))}}

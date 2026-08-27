@@ -55,10 +55,15 @@ export function canBeat(candidate: Omit<Play, "seat" | "cards">, cardsLength: nu
   const currentSpecial = current.kind === "bomb" || current.kind === "straight-flush";
   if (special && !currentSpecial) return true;
   if (candidate.kind !== current.kind || cardsLength !== current.cards.length) return false;
+  const stepwise = candidate.kind === "straight" || candidate.kind === "straight-flush" || candidate.kind === "triple-run" || candidate.kind === "five-pairs";
+  if (stepwise) {
+    if (candidate.value === current.value + 1) return true;
+    const suitBreaksTie = candidate.kind === "straight" || candidate.kind === "straight-flush";
+    return candidate.value === current.value && suitBreaksTie && candidate.suit > current.suit;
+  }
   if (candidate.value > current.value) return true;
   if (candidate.value < current.value) return false;
-  const suitBreaksTie = candidate.kind === "straight" || candidate.kind === "straight-flush";
-  return suitBreaksTie && candidate.suit > current.suit;
+  return false;
 }
 function nextActive(state: GameState, from: number) { for (let n = 1; n <= 4; n++) { const seat = (from + n) % 4; if (!state.finishOrder.includes(seat)) return seat; } return from; }
 function activeSeats(state: GameState) { return [0, 1, 2, 3].filter((seat) => !state.finishOrder.includes(seat)); }
@@ -75,7 +80,7 @@ function deal(state: GameState) {
     const hasValidReturn = state.hands[first].some((card) => card.suit !== "X" && rankValue(card.rank) <= rankValue("10") && !completesBomb(state.hands[last].filter((held) => held.id !== give?.id), card));
     if (!bothJokers && !createsBomb && hasValidReturn && give) {
       state.hands[last] = state.hands[last].filter((card) => card.id !== give.id); state.hands[first].push(give); state.pendingExchange = { first, last, giveCardId: give.id }; state.phase = "exchange"; state.turn = first;
-    } else { state.phase = "playing"; state.turn = first; state.log.unshift(bothJokers ? "Scambio annullato: un giocatore possiede entrambi i Jolly." : createsBomb ? "Scambio annullato: la carta ceduta completerebbe una Bomba." : "Scambio annullato: nessuna restituzione valida senza creare una Bomba."); }
+    } else { state.phase = "playing"; state.turn = last; state.log.unshift(bothJokers ? "Scambio annullato: un giocatore possiede entrambi i Jolly." : createsBomb ? "Scambio annullato: la carta ceduta completerebbe una Bomba." : "Scambio annullato: nessuna restituzione valida senza creare una Bomba."); }
   }
   state.leader = state.turn; state.players.forEach((p, i) => p.cards = state.hands[i].length);
 }

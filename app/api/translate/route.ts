@@ -56,3 +56,8 @@ export async function POST(request: Request) {
     return Response.json({ error: "Translation unavailable." }, { status: 503 });
   }
 }
+
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  return POST(new Request(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: url.searchParams.get("text"), target: url.searchParams.get("target") }) }));
+}

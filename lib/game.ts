@@ -3,12 +3,12 @@ export type Rank = "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10" | "J" | "Q" | 
 export type Card = { id: string; rank: Rank; suit: Suit };
 export type ComboKind = "single" | "pair" | "triple" | "straight" | "triple-run" | "five-pairs" | "bomb" | "straight-flush";
 export type Play = { seat: number; cards: Card[]; kind: ComboKind; value: number; suit: number };
-export type GamePhase = "waiting" | "playing" | "hand-over" | "match-over";
+export type GamePhase = "waiting" | "playing" | "exchange" | "match-over";
 export type Player = { name: string; bot: boolean; team: 0 | 1; cards: number };
 export type GameState = {
   phase: GamePhase; humanCount: number; players: Player[]; hands: Card[][]; turn: number; leader: number;
-  currentPlay?: Play; passes: number[]; finishOrder: number[]; scores: [number, number]; target: number;
-  handNumber: number; openingPlay: boolean; botNames?: string[]; lastResult?: { order: number[]; points: [number, number] }; log: string[];
+  currentPlay?: Play; pile: Play[]; passes: number[]; finishOrder: number[]; scores: [number, number]; target: number;
+  handNumber: number; openingPlay: boolean; botNames?: string[]; pendingExchange?: { first: number; last: number; giveCardId: string }; lastResult?: { order: number[]; points: [number, number] }; log: string[];
 };
 export type PublicGameState = Omit<GameState, "hands"> & { hand: Card[] };
 
@@ -55,35 +55,35 @@ function activeSeats(state: GameState) { return [0, 1, 2, 3].filter((seat) => !s
 
 function deal(state: GameState) {
   const deck = shuffle(createDeck()); state.hands = [[], [], [], []]; deck.forEach((card, index) => state.hands[index % 4].push(card));
-  state.players.forEach((p, i) => p.cards = state.hands[i].length); state.finishOrder = []; state.passes = []; delete state.currentPlay; state.openingPlay = state.handNumber === 1;
+  state.players.forEach((p, i) => p.cards = state.hands[i].length); state.finishOrder = []; state.passes = []; state.pile = []; delete state.currentPlay; delete state.pendingExchange; state.openingPlay = state.handNumber === 1;
   if (state.handNumber === 1) state.turn = state.hands.findIndex((hand) => hand.some((card) => card.id === "3-S"));
   else {
     const previous = state.lastResult?.order ?? [0, 1, 2, 3]; const first = previous[0], last = previous[3];
     const bothJokers = state.hands[last].some((c) => c.rank === "BJ") && state.hands[last].some((c) => c.rank === "RJ");
     if (!bothJokers) {
       const give = [...state.hands[last]].sort((a, b) => rankValue(b.rank) - rankValue(a.rank) || suitValue(b.suit) - suitValue(a.suit))[0];
-      const back = [...state.hands[first]].filter((c) => rankValue(c.rank) <= rankValue("10")).sort((a, b) => rankValue(a.rank) - rankValue(b.rank) || suitValue(a.suit) - suitValue(b.suit))[0];
-      if (give && back) { state.hands[last] = state.hands[last].filter((c) => c.id !== give.id).concat(back); state.hands[first] = state.hands[first].filter((c) => c.id !== back.id).concat(give); state.log.unshift(`Scambio: ${state.players[last].name} cede ${cardLabel(give)}; ${state.players[first].name} restituisce ${cardLabel(back)}.`); }
-      state.turn = last;
-    } else state.turn = first;
+      if (give) { state.hands[last] = state.hands[last].filter((card) => card.id !== give.id); state.hands[first].push(give); state.pendingExchange = { first, last, giveCardId: give.id }; state.phase = "exchange"; state.turn = first; }
+    } else { state.phase = "playing"; state.turn = first; state.log.unshift("Scambio annullato: l’ultimo classificato possiede entrambi i Jolly."); }
   }
   state.leader = state.turn; state.players.forEach((p, i) => p.cards = state.hands[i].length);
 }
 
-export function waitingState(humanCount: number, hostName: string, botNames: string[] = []): GameState { return { phase: "waiting", humanCount, botNames, players: [{ name: hostName, bot: false, team: 0, cards: 0 }], hands: [[], [], [], []], turn: 0, leader: 0, passes: [], finishOrder: [], scores: [0, 0], target: 21, handNumber: 1, openingPlay: true, log: ["Stanza creata. In attesa dei compagni..."] }; }
+export function waitingState(humanCount: number, hostName: string, botNames: string[] = []): GameState { return { phase: "waiting", humanCount, botNames, players: [{ name: hostName, bot: false, team: 0, cards: 0 }], hands: [[], [], [], []], turn: 0, leader: 0, pile: [], passes: [], finishOrder: [], scores: [0, 0], target: 21, handNumber: 1, openingPlay: true, log: ["Stanza creata. In attesa dei compagni..."] }; }
 export function startGame(state: GameState) { while (state.players.length < 4) { const seat = state.players.length; const customName = state.botNames?.[seat - state.humanCount]?.trim(); state.players.push({ name: customName || `Bot ${seat + 1}`, bot: true, team: (seat % 2) as 0 | 1, cards: 0 }); } state.players.forEach((p, seat) => p.team = (seat % 2) as 0 | 1); state.phase = "playing"; state.log = ["La partita è iniziata. Il 3♠ apre la prima mano."]; deal(state); return runBots(state); }
 function finishHand(state: GameState) {
   const pts = [3, 2, 1, 0]; const teamPoints: [number, number] = [0, 0]; state.finishOrder.forEach((seat, place) => teamPoints[state.players[seat].team] += pts[place]);
   state.scores[0] += teamPoints[0]; state.scores[1] += teamPoints[1]; state.lastResult = { order: [...state.finishOrder], points: teamPoints };
   const reached = [state.scores[0] >= state.target, state.scores[1] >= state.target];
-  if (reached[0] && reached[1] && state.target < 51) state.target += 10; else if (reached[0] !== reached[1] || state.target === 51 && state.scores[0] !== state.scores[1]) state.phase = "match-over"; else state.phase = "hand-over";
+  if (reached[0] && reached[1] && state.target < 51) state.target += 10; else if (reached[0] !== reached[1] || state.target === 51 && state.scores[0] !== state.scores[1]) { state.phase = "match-over"; state.log.unshift(`Mano conclusa: Squadra Ambra +${teamPoints[0]}, Squadra Giada +${teamPoints[1]}.`); return; }
   state.log.unshift(`Mano conclusa: Squadra Ambra +${teamPoints[0]}, Squadra Giada +${teamPoints[1]}.`);
+  state.handNumber += 1; deal(state);
 }
 function playInternal(state: GameState, seat: number, cardIds: string[]) {
   if (state.phase !== "playing" || seat !== state.turn) throw new Error("Non è il tuo turno.");
+  state.pile ??= [];
   const chosen = cardIds.map((id) => state.hands[seat].find((c) => c.id === id)).filter(Boolean) as Card[]; if (chosen.length !== cardIds.length) throw new Error("Una carta scelta non è disponibile.");
   const combo = classify(chosen); if (!combo) throw new Error("Questa combinazione non è valida."); if (state.openingPlay && !chosen.some((c) => c.id === "3-S")) throw new Error("La prima giocata deve contenere il 3♠."); if (!canBeat(combo, chosen.length, state.currentPlay)) throw new Error("Devi giocare lo stesso tipo più alto, oppure una combinazione speciale.");
-  state.hands[seat] = state.hands[seat].filter((c) => !cardIds.includes(c.id)); state.currentPlay = { seat, cards: chosen, ...combo }; state.leader = seat; state.passes = []; state.openingPlay = false; state.players[seat].cards = state.hands[seat].length; state.log.unshift(`${state.players[seat].name} gioca ${chosen.map(cardLabel).join(" ")}.`);
+  state.hands[seat] = state.hands[seat].filter((c) => !cardIds.includes(c.id)); state.currentPlay = { seat, cards: chosen, ...combo }; state.pile.push(state.currentPlay); state.leader = seat; state.passes = []; state.openingPlay = false; state.players[seat].cards = state.hands[seat].length; state.log.unshift(`${state.players[seat].name} gioca ${chosen.map(cardLabel).join(" ")}.`);
   if (!state.hands[seat].length) { state.finishOrder.push(seat); state.log.unshift(`${state.players[seat].name} chiude in ${state.finishOrder.length}ª posizione.`); if (state.finishOrder.length === 3) { state.finishOrder.push([0, 1, 2, 3].find((s) => !state.finishOrder.includes(s))!); finishHand(state); return; } }
   state.turn = nextActive(state, seat);
 }
@@ -99,6 +99,19 @@ function passInternal(state: GameState, seat: number) {
     state.log.unshift(`${state.players[opener].name} apre un nuovo giro.`);
   } else state.turn = nextActive(state, seat);
 }
+function exchangeInternal(state: GameState, seat: number, cardId: string) {
+  const pending = state.pendingExchange;
+  if (state.phase !== "exchange" || !pending || seat !== pending.first) throw new Error("Non spetta a te effettuare lo scambio.");
+  const back = state.hands[seat].find((card) => card.id === cardId);
+  const give = state.hands[seat].find((card) => card.id === pending.giveCardId);
+  if (!back || back.id === pending.giveCardId || rankValue(back.rank) > rankValue("10") || back.suit === "X") throw new Error("Devi restituire una tua carta compresa tra 3 e 10.");
+  if (!give) throw new Error("La carta dello scambio non è disponibile.");
+  state.hands[seat] = state.hands[seat].filter((card) => card.id !== back.id);
+  state.hands[pending.last].push(back);
+  state.players.forEach((player, index) => player.cards = state.hands[index].length);
+  state.log.unshift(`Scambio: ${state.players[pending.last].name} cede ${cardLabel(give)}; ${state.players[seat].name} restituisce ${cardLabel(back)}.`);
+  state.turn = pending.last; state.leader = pending.last; state.phase = "playing"; delete state.pendingExchange;
+}
 function combinations(hand: Card[], current?: Play, mustContain?: string) {
   const found: Card[][] = []; const add = (cards: Card[]) => { if (mustContain && !cards.some((c) => c.id === mustContain)) return; const combo = classify(cards); if (combo && canBeat(combo, cards.length, current)) found.push(cards); };
   hand.forEach((c) => add([c])); const byRank = new Map<Rank, Card[]>(); hand.forEach((c) => byRank.set(c.rank, [...(byRank.get(c.rank) ?? []), c]));
@@ -113,12 +126,13 @@ function combinations(hand: Card[], current?: Play, mustContain?: string) {
   }
   for (let start = 0; start <= rankValue("A") - 4; start++) for (let len = 5; start + len - 1 <= rankValue("A"); len++) { const seq = Array.from({ length: len }, (_, i) => [...(byRank.get(ranks[start + i]) ?? [])][0]); if (seq.every(Boolean)) add(seq as Card[]); }
   for (const suit of suits) for (let start = 0; start <= rankValue("A") - 4; start++) { const seq = Array.from({ length: 5 }, (_, i) => hand.find((c) => c.suit === suit && rankValue(c.rank) === start + i)); if (seq.every(Boolean)) add(seq as Card[]); }
-  return found.sort((a, b) => a.length - b.length || Math.max(...a.map((c) => rankValue(c.rank))) - Math.max(...b.map((c) => rankValue(c.rank))));
+  return found.sort((a, b) => current ? a.length - b.length || Math.max(...a.map((c) => rankValue(c.rank))) - Math.max(...b.map((c) => rankValue(c.rank))) : b.length - a.length || Math.max(...a.map((c) => rankValue(c.rank))) - Math.max(...b.map((c) => rankValue(c.rank))));
 }
 export function runBots(state: GameState) {
   let guard = 0;
-  while (state.phase === "playing" && state.players[state.turn]?.bot && guard++ < 100) {
+  while ((state.phase === "playing" || state.phase === "exchange") && state.players[state.turn]?.bot && guard++ < 100) {
     const seat = state.turn;
+    if (state.phase === "exchange") { const back = [...state.hands[seat]].filter((card) => card.id !== state.pendingExchange?.giveCardId && card.suit !== "X" && rankValue(card.rank) <= rankValue("10")).sort((a,b) => rankValue(a.rank)-rankValue(b.rank) || suitValue(a.suit)-suitValue(b.suit))[0]; if (!back) throw new Error("Il bot non ha una carta valida per lo scambio."); exchangeInternal(state, seat, back.id); continue; }
     const teammateLeads = !!state.currentPlay && state.players[state.currentPlay.seat].team === state.players[seat].team;
     if (teammateLeads) { passInternal(state, seat); continue; }
     const options = combinations(state.hands[seat], state.currentPlay, state.openingPlay ? "3-S" : undefined);
@@ -126,6 +140,6 @@ export function runBots(state: GameState) {
   }
   return state;
 }
-export function applyAction(state: GameState, seat: number, action: { type: "play" | "pass" | "new-hand"; cardIds?: string[] }) { if (action.type === "new-hand") { if (state.phase !== "hand-over") throw new Error("La mano non è ancora conclusa."); state.handNumber += 1; state.phase = "playing"; deal(state); return runBots(state); } if (action.type === "play") playInternal(state, seat, action.cardIds ?? []); else passInternal(state, seat); return runBots(state); }
+export function applyAction(state: GameState, seat: number, action: { type: "play" | "pass" | "exchange"; cardIds?: string[] }) { if (action.type === "exchange") exchangeInternal(state, seat, action.cardIds?.[0] ?? ""); else if (action.type === "play") playInternal(state, seat, action.cardIds ?? []); else passInternal(state, seat); return runBots(state); }
 export function publicState(state: GameState, seat: number): PublicGameState { const { hands, ...rest } = state; return { ...rest, players: state.players.map((p, i) => ({ ...p, cards: hands[i]?.length ?? p.cards })), hand: hands[seat] ?? [] }; }
 export function addHuman(state: GameState, name: string) { if (state.phase !== "waiting" || state.players.length >= state.humanCount) throw new Error("La stanza non può accettare altri giocatori."); const seat = state.players.length; state.players.push({ name, bot: false, team: (seat % 2) as 0 | 1, cards: 0 }); state.log.unshift(`${name} è entrato nella stanza.`); if (state.players.length === state.humanCount) startGame(state); return seat; }

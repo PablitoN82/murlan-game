@@ -54,7 +54,7 @@ export async function GET(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const body = await request.json() as { code?: string; playerId?: string; token?: string; version?: number; action?: { type: "play" | "pass" | "new-hand"; cardIds?: string[] } };
+    const body = await request.json() as { code?: string; playerId?: string; token?: string; version?: number; action?: { type: "play" | "pass" | "exchange"; cardIds?: string[] } };
     if (!body.code || !body.playerId || !body.token || !body.action) throw new Error("Richiesta incompleta.");
     const { db, room, player } = await auth(body.code, body.playerId, body.token); if (body.version !== room.version) return Response.json({ error: "La partita è stata aggiornata.", stale: true }, { status: 409 });
     const state = applyAction(JSON.parse(room.state) as GameState, player.seat, body.action); const version = room.version + 1;

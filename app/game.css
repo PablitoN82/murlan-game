@@ -81,3 +81,11 @@ body{font-family:Inter,"Segoe UI",Arial,sans-serif}
 .suits span{display:grid;justify-items:center;gap:4px;color:var(--ink)!important}
 .suits span:nth-child(3),.suits span:nth-child(4){color:#d65750!important}
 .suits small{font-family:'DM Sans',sans-serif;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#aaa696}
+
+.history-toggle{position:absolute;z-index:9;top:10px;right:10px;border:1px solid rgba(240,207,118,.36);border-radius:999px;background:rgba(7,14,12,.92);color:var(--gold2);padding:8px 12px;font-size:11px;font-weight:700;cursor:pointer}
+.play-history{position:absolute;z-index:20;top:48px;right:10px;width:min(350px,calc(100% - 20px));max-height:58%;overflow:auto;border:1px solid rgba(240,207,118,.35);border-radius:14px;background:rgba(7,14,12,.97);box-shadow:0 18px 45px rgba(0,0,0,.68);padding:10px}
+.play-history header{display:flex;align-items:center;justify-content:space-between;padding:2px 3px 9px;color:var(--gold2)}
+.play-history header button{border:0;background:none;color:white;font-size:22px;cursor:pointer}.play-history>p{color:var(--muted);font-size:12px}
+.history-row{display:grid;grid-template-columns:78px 1fr;gap:8px;align-items:center;border-top:1px solid rgba(255,255,255,.08);padding:8px 3px}.history-row small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#aaa;font-weight:700}.history-row>div{display:flex;flex-wrap:wrap;gap:4px}
+.card-token{font-family:Georgia,serif;font-size:15px;font-weight:800;white-space:nowrap}.card-token.red{color:#ef5b52}.card-token.black{color:#f5f2e9}
+@media(max-width:800px){.player-pill.p2{top:16px!important}.table-center{top:52%}.turn-label{margin-bottom:18px}.history-toggle{top:8px;right:8px;font-size:0;padding:9px 11px}.history-toggle:first-letter{font-size:16px}.play-history{top:47px;max-height:52%;width:calc(100% - 16px);right:8px}.card-token{font-size:16px}}

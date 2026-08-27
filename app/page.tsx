@@ -18,6 +18,11 @@ function CardView({ card, copy, selected, small, onClick }: { card: Card; copy: 
   const label = card.suit === "X" ? copy.suits.X : `${card.rank} · ${copy.suits[card.suit]}`;
   return <button type="button" className={`playing-card ${selected ? "selected" : ""} ${small ? "small" : ""}`} onClick={onClick} disabled={!onClick} aria-label={label}><img src={cardImage(card)} alt="" /></button>;
 }
+function CardToken({ card }: { card: Card }) {
+  const joker = card.rank === "BJ" || card.rank === "RJ";
+  const red = card.suit === "H" || card.suit === "D" || card.rank === "RJ";
+  return <span className={`card-token ${red ? "red" : "black"}`}>{joker ? "✪ Jolly" : `${card.rank}${({ S:"♠", C:"♣", D:"♦", H:"♥" } as Record<string,string>)[card.suit]}`}</span>;
+}
 function chatSource(text: string): Language { const value = ` ${text.toLowerCase()} `; if (/[ëç]/.test(value) || /\b(dhe|është|jam|nuk|për|luaj|dhomë|dua)\b/.test(value)) return "sq"; if (/[¿¡ñáéíóú]/.test(value) || /\b(quieres|jugar|sala|hola|gracias|entra|estoy)\b/.test(value)) return "es"; if (/\b(the|you|want|play|room|hello|thanks|join|game)\b/.test(value)) return "en"; return "it"; }
 async function browserTranslation(text: string, target: Language) { const source = chatSource(text); if (source === target) return text; const url = new URL("https://api.mymemory.translated.net/get"); url.searchParams.set("q", text); url.searchParams.set("langpair", `${source}|${target}`); url.searchParams.set("mt", "1"); const response = await fetch(url); if (!response.ok) throw new Error("Translation failed"); const data = await response.json() as { responseData?: { translatedText?: string } }; if (!data.responseData?.translatedText) throw new Error("Translation failed"); return data.responseData.translatedText; }
 
@@ -27,10 +32,11 @@ export default function Home() {
   const [mode, setMode] = useState<"online" | "pass-play">("online"); const [botNames, setBotNames] = useState(["", "", ""]); const [localNames, setLocalNames] = useState(["", "", "", ""]); const [localHumans, setLocalHumans] = useState(1);
   const [localSessions, setLocalSessions] = useState<Session[]>([]); const [handoff, setHandoff] = useState(false);
   const [visiblePileCount, setVisiblePileCount] = useState(0);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [busy, setBusy] = useState(false); const [error, setError] = useState(""); const [showRules, setShowRules] = useState(false); const [copied, setCopied] = useState(false);
   const [lang, setLang] = useState<Language>("it"); const t = translations[lang];
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
-  const game = snapshot?.game; const pileLength = game?.pile?.length ?? 0; const watchingMoves = visiblePileCount < pileLength; const myTurn = !!game && game.phase === "playing" && game.turn === session?.seat && !watchingMoves; const myExchange = !!game && game.phase === "exchange" && game.turn === session?.seat; const canSelect = myTurn || myExchange; const visiblePile = (game?.pile ?? []).slice(0, visiblePileCount); const shownPlay = visiblePile.at(-1);
+  const game = snapshot?.game; const pileLength = game?.pile?.length ?? 0; const watchingMoves = visiblePileCount < pileLength; const myTurn = !!game && game.phase === "playing" && game.turn === session?.seat && !watchingMoves; const myExchange = !!game && game.phase === "exchange" && game.turn === session?.seat; const canSelect = myTurn || myExchange; const visiblePile = (game?.pile ?? []).slice(0, visiblePileCount);
   const sortedHand = useMemo(() => [...(game?.hand ?? [])].sort((a, b) => order.indexOf(a.rank) - order.indexOf(b.rank) || "HDCSX".indexOf(a.suit) - "HDCSX".indexOf(b.suit)), [game?.hand]);
   const saveSession = (next: Session) => { setSession(next); localStorage.setItem(STORE, JSON.stringify(next)); };
   const request = useCallback(async (url: string, init?: RequestInit) => { const res = await fetch(url, init); const data = await res.json(); if (!res.ok) throw new Error(data.error ?? "Errore inatteso."); return data as Snapshot; }, []);
@@ -85,7 +91,7 @@ export default function Home() {
           <label>{t.howMany}<div className="people-picker">{[1,2,3,4].map((n) => <button key={n} type="button" onClick={() => setHumans(n)} className={humans === n ? "active" : ""}><b>{n}</b><small>{n === 1 ? t.youBots : n === 4 ? t.allHuman : `${n} ${t.humans}`}</small></button>)}</div></label>
           {humans < 4 && <fieldset className="name-grid"><legend>{t.botNames}</legend>{Array.from({length:4-humans},(_,index) => <input key={index} value={botNames[index]} onChange={(event) => setBotNames((old) => old.map((value,i) => i === index ? event.target.value : value))} maxLength={24} placeholder={`Bot ${humans + index + 1}`} />)}</fieldset>}
           <button className="primary" disabled={busy || !name.trim()} onClick={() => enter("create")}>{t.create}</button>
-          <div className="or"><span>{t.orCode}</span></div><div className="join-row"><input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} maxLength={6} placeholder={t.code} /><button disabled={busy || !name.trim() || code.length < 4} onClick={() => enter("join")}>{t.join}</button></div>
+          <div className="or"><span>{t.orCode}</span></div><div className="join-row"><input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} maxLength={13} placeholder="MURLAN-XXXXXX" /><button disabled={busy || !name.trim() || code.length < 6} onClick={() => enter("join")}>{t.join}</button></div>
         </> : <>
           <div className="entry-tabs"><span>{t.passPlayMode}</span><span>{localHumans} + {4-localHumans}</span></div>
           <label>{t.howMany}<div className="people-picker">{[1,2,3,4].map((n) => <button key={n} type="button" onClick={() => setLocalHumans(n)} className={localHumans === n ? "active" : ""}><b>{n}</b><small>{n === 1 ? t.youBots : n === 4 ? t.allHuman : `${n} ${t.humans}`}</small></button>)}</div></label>
@@ -93,7 +99,7 @@ export default function Home() {
           {localHumans < 4 && <fieldset className="name-grid"><legend>{t.botNames}</legend>{Array.from({length:4-localHumans},(_,index) => <input key={index} value={botNames[index]} onChange={(event) => setBotNames((old) => old.map((value,i) => i === index ? event.target.value : value))} maxLength={24} placeholder={`Bot ${localHumans + index + 1}`} />)}</fieldset>}
           <button className="primary" disabled={busy || localNames.slice(0,localHumans).some((value) => !value.trim())} onClick={startPassPlay}>{t.startLocal}</button>
         </>}
-        {error && <p className="error">{error}</p>}<p className="microcopy">{t.noDownload}</p>
+        {error && <p className="error">{error}</p>}
       </div>
     </section>{installPrompt && <button className="install-app" onClick={installApp}>↓ {t.install}</button>}<footer><span>{t.edition}</span><span>{t.footer}</span></footer>{showRules && <Rules copy={t} onClose={() => setShowRules(false)} />}
   </main><Lobby name={name} copy={t} lang={lang} onJoin={(room) => setCode(room)} /></>;
@@ -104,7 +110,8 @@ export default function Home() {
     {localSessions.length > 0 && handoff && <div className="handoff-screen"><img src="/icon-192.png" alt="" /><p>{t.passDevice}</p><h2>{session.name}</h2><button className="primary" onClick={() => setHandoff(false)}>{t.revealHand}</button></div>}
     <header className="game-header"><button className="brand-button" onClick={leave}>M</button><div className="score amber"><small>{t.team} {t.amber}</small><b>{game?.scores[0]}</b></div><div className="target"><small>{t.target}</small><b>{game?.target}</b></div><div className="score jade"><b>{game?.scores[1]}</b><small>{t.team} {t.jade}</small></div><div className="game-tools">{languageMenu}<button className="icon-button" onClick={() => setShowRules(true)}>?</button></div></header>
     <section className="table">
-      {shownPlay && <div className="move-window"><div><b>{game.players[shownPlay.seat].name}</b><span>{t.played}</span></div><strong>{t.kinds[shownPlay.kind]}</strong><div className="move-cards">{shownPlay.cards.map((card) => <CardView card={card} copy={t} small key={card.id} />)}</div>{watchingMoves && <i />}</div>}
+      <button className="history-toggle" onClick={() => setHistoryOpen((open) => !open)}>☰ {t.playHistory}</button>
+      {historyOpen && <aside className="play-history"><header><b>{t.playHistory}</b><button onClick={() => setHistoryOpen(false)}>×</button></header>{visiblePile.length ? visiblePile.map((play,index) => <div className="history-row" key={`${play.seat}-${index}-${play.cards[0]?.id}`}><small>{game.players[play.seat].name}</small><div>{play.cards.map((card) => <CardToken card={card} key={card.id} />)}</div></div>) : <p>{t.noPlays}</p>}</aside>}
       <div className="players-ring">{game?.players.map((player, seat) => <div key={seat} className={`player-pill p${seat} team-${player.team} ${game.turn === seat ? "turn" : ""} ${game.finishOrder.includes(seat) ? "finished" : ""}`}><span className="avatar">{player.bot ? "◆" : player.name.slice(0,1).toUpperCase()}</span><div><b>{player.name}{seat === session.seat ? ` · ${t.you}` : ""}</b><small>{game.finishOrder.includes(seat) ? `${game.finishOrder.indexOf(seat)+1}° ${t.place}` : player.cards === 1 ? t.lastCard : `${player.cards} ${t.cards}`}</small></div></div>)}</div>
       <div className="table-center"><p className="turn-label">{watchingMoves ? t.watchPlay : game?.phase === "playing" ? myTurn ? t.yourTurn : `${t.turnOf} ${game?.players[game.turn]?.name}` : game?.phase === "exchange" ? myExchange ? t.exchangeYourTurn : `${t.exchangeWaiting} ${game?.players[game.turn]?.name}` : t.matchOver}</p><div className="last-play">{visiblePile.length ? <><div className="pile-stack">{visiblePile.slice(-7).map((play,index) => <div className="pile-play" key={`${play.seat}-${index}-${play.cards[0]?.id}`} style={{ transform:`translate(${(index%3-1)*4}px, ${index*2}px) rotate(${(index%5-2)*2.2}deg)`, zIndex:index+1 }}>{play.cards.map((card) => <CardView card={card} copy={t} small key={card.id} />)}</div>)}</div>{!game.currentPlay && !watchingMoves && <p className="free-lead">{t.newRound} · {t.freePlay}</p>}</> : <div className="empty-play"><span>♠</span><p>{t.newRound}<br /><small>{t.freePlay}</small></p></div>}</div>{game?.passes.length && !watchingMoves ? <p className="pass-line">{t.passed}: {game.passes.map((s) => game.players[s].name).join(", ")}</p> : null}</div>
     </section>

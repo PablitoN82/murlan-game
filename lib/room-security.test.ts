@@ -4,13 +4,13 @@ import { isValidRoomCode, makeRoomCode, normalizePlayerName, normalizeRoomCode }
 
 test("genera codici stanza nel formato sicuro a sei caratteri", () => {
   for (let index = 0; index < 100; index += 1) {
-    assert.match(makeRoomCode(), /^REGNO-[A-HJ-NP-Z2-9]{6}$/);
+    assert.match(makeRoomCode(), /^MURLAN-[A-HJ-NP-Z2-9]{6}$/);
   }
 });
 
 test("normalizza e valida il codice stanza", () => {
-  assert.equal(normalizeRoomCode("  regno-ab23cd "), "REGNO-AB23CD");
-  assert.equal(isValidRoomCode("REGNO-AB23CD"), true);
+  assert.equal(normalizeRoomCode("  murlan-ab23cd "), "MURLAN-AB23CD");
+  assert.equal(isValidRoomCode("MURLAN-AB23CD"), true);
   assert.equal(isValidRoomCode("REGNO-AB12"), false);
   assert.equal(isValidRoomCode("REGNO-ABIO01"), false);
 });

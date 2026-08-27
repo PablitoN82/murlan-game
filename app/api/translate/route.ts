@@ -1,8 +1,19 @@
 import { env } from "cloudflare:workers";
 
 const targetNames = { it: "Italian", en: "English", es: "Spanish", sq: "Albanian" } as const;
+type Language = keyof typeof targetNames;
 
-async function fallbackTranslate(text: string, target: keyof typeof targetNames) {
+function detectLanguage(text: string): Language {
+  const value = ` ${text.toLowerCase()} `;
+  if (/[ëç]/.test(value) || /\b(dhe|është|jam|nuk|për|luaj|dhomë|dua)\b/.test(value)) return "sq";
+  if (/[¿¡ñáéíóú]/.test(value) || /\b(quieres|jugar|sala|hola|gracias|entra|estoy)\b/.test(value)) return "es";
+  if (/\b(the|you|want|play|room|hello|thanks|join|game)\b/.test(value)) return "en";
+  return "it";
+}
+
+async function fallbackTranslate(text: string, target: Language) {
+  const source = detectLanguage(text);
+  if (source === target) return text;
   try {
     const url = new URL("https://translate.googleapis.com/translate_a/single");
     url.searchParams.set("client", "gtx"); url.searchParams.set("sl", "auto"); url.searchParams.set("tl", target); url.searchParams.set("dt", "t"); url.searchParams.set("q", text);
@@ -13,7 +24,7 @@ async function fallbackTranslate(text: string, target: keyof typeof targetNames)
     if (translated) return translated;
   } catch { /* try the independent translation-memory service below */ }
   const memoryUrl = new URL("https://api.mymemory.translated.net/get");
-  memoryUrl.searchParams.set("q", text); memoryUrl.searchParams.set("langpair", `Autodetect|${target}`); memoryUrl.searchParams.set("mt", "1");
+  memoryUrl.searchParams.set("q", text); memoryUrl.searchParams.set("langpair", `${source}|${target}`); memoryUrl.searchParams.set("mt", "1");
   const memoryResponse = await fetch(memoryUrl);
   if (!memoryResponse.ok) throw new Error("Translation fallback failed");
   const memoryData = await memoryResponse.json() as { responseData?: { translatedText?: string } };
@@ -27,6 +38,7 @@ export async function POST(request: Request) {
     if (!text || text.length > 500 || !body.target || !(body.target in targetNames)) {
       return Response.json({ error: "Invalid translation request." }, { status: 400 });
     }
+    if (detectLanguage(text) === body.target) return Response.json({ translation: text });
     let translation = "";
     try {
       const result = await env.AI.run("@cf/meta/llama-3.1-8b-instruct", {

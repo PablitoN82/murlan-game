@@ -33,6 +33,7 @@ export default function Home() {
   const [name, setName] = useState(""); const [code, setCode] = useState(""); const [humans, setHumans] = useState(1); const [selected, setSelected] = useState<string[]>([]);
   const [mode, setMode] = useState<"online" | "pass-play">("online"); const [offlineMode, setOfflineMode] = useState(false); const [offlineGame, setOfflineGame] = useState<GameState | null>(null); const [botNames, setBotNames] = useState(["", "", ""]); const [localNames, setLocalNames] = useState(["", "", "", ""]); const [localHumans, setLocalHumans] = useState(1);
   const [localSessions, setLocalSessions] = useState<Session[]>([]); const [handoff, setHandoff] = useState(false);
+  const [pausedSession, setPausedSession] = useState<Session | null>(null);
   const [visiblePileCount, setVisiblePileCount] = useState(0);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [busy, setBusy] = useState(false); const [error, setError] = useState(""); const [showRules, setShowRules] = useState(false); const [copied, setCopied] = useState(false);
@@ -91,7 +92,9 @@ export default function Home() {
     catch (e) { setError(translateError(e instanceof Error ? e.message : "Errore inatteso.", lang)); await refresh(session); } finally { setBusy(false); }
   }
   async function share() { const url = `${location.origin}${location.pathname}?room=${session?.code}`; await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1800); }
-  function leave() { localStorage.removeItem(STORE); localStorage.removeItem(LOCAL_STORE); localStorage.removeItem(OFFLINE_STORE); setOfflineGame(null); setLocalSessions([]); setHandoff(false); setSession(null); setSnapshot(null); setSelected([]); history.replaceState({}, "", location.pathname); }
+  function goHome() { if (session) setPausedSession(session); setHandoff(false); setSession(null); setSnapshot(null); setSelected([]); history.replaceState({}, "", location.pathname); }
+  async function resumeGame() { if (!pausedSession) return; const active = pausedSession; setPausedSession(null); if (offlineGame) { showOfflineState(offlineGame, localSessions, active, true); return; } setSession(active); await refresh(active); if (localSessions.length) setHandoff(true); history.replaceState({}, "", `${location.pathname}?room=${active.code}`); }
+  function leave() { localStorage.removeItem(STORE); localStorage.removeItem(LOCAL_STORE); localStorage.removeItem(OFFLINE_STORE); setPausedSession(null); setOfflineGame(null); setLocalSessions([]); setHandoff(false); setSession(null); setSnapshot(null); setSelected([]); history.replaceState({}, "", location.pathname); }
   function changeLanguage(next: Language) { setLang(next); localStorage.setItem("murlan-language", next); document.documentElement.lang = next; }
   async function installApp() { if (!installPrompt) return; await installPrompt.prompt(); await installPrompt.userChoice; setInstallPrompt(null); }
   const languageMenu = <LanguageMenu value={lang} onChange={changeLanguage} />;
@@ -101,6 +104,7 @@ export default function Home() {
     <section className="hero">
       <div className="hero-copy"><img className="hero-logo" src="/murlan-icon-original.png" alt="Murlan Game" /><h1>MURLAN</h1><div className="suits"><span>♠<small>{t.suits.S}</small></span><span>♣<small>{t.suits.C}</small></span><span>♦<small>{t.suits.D}</small></span><span>♥<small>{t.suits.H}</small></span></div></div>
       <div className="entry-card">
+        {pausedSession && <button className="resume-game" onClick={resumeGame}>↩ {({it:"Riprendi partita",en:"Resume game",es:"Reanudar partida",sq:"Vazhdo lojën"} as Record<Language,string>)[lang]}<small>{offlineGame ? " · ✈" : ` · ${pausedSession.code}`}</small></button>}
         <div className="mode-tabs"><button className={mode === "online" ? "active" : ""} onClick={() => setMode("online")}>{t.onlineMode}</button><button className={mode === "pass-play" ? "active" : ""} onClick={() => setMode("pass-play")}>{t.passPlayMode}</button></div>
         {mode === "online" ? <>
           <div className="entry-tabs"><span>{t.newGame}</span><span>{t.join}</span></div>
@@ -126,7 +130,7 @@ export default function Home() {
 
   return <><main className="game-shell">
     {localSessions.length > 0 && handoff && <div className="handoff-screen"><img src="/murlan-icon-192.png" alt="" /><p>{t.passDevice}</p><h2>{session.name}</h2><button className="primary" onClick={() => setHandoff(false)}>{t.revealHand}</button></div>}
-    <header className="game-header"><button className="brand-button" onClick={leave}>M</button><div className="score amber"><small>{t.team} {t.amber}</small><b>{game?.scores[0]}</b></div><div className="target"><small>{t.target}</small><b>{game?.target}</b></div><div className="score jade"><b>{game?.scores[1]}</b><small>{t.team} {t.jade}</small></div><div className="game-tools">{languageMenu}<button className="icon-button" onClick={() => setShowRules(true)}>?</button></div></header>
+    <header className="game-header"><button className="brand-button" onClick={goHome}>M</button><div className="score amber"><small>{t.team} {t.amber}</small><b>{game?.scores[0]}</b></div><div className="target"><small>{t.target}</small><b>{game?.target}</b></div><div className="score jade"><b>{game?.scores[1]}</b><small>{t.team} {t.jade}</small></div><div className="game-tools">{languageMenu}<button className="icon-button" onClick={() => setShowRules(true)}>?</button></div></header>
     <section className="table">
       <button className="history-toggle" onClick={() => setHistoryOpen((open) => !open)}>☰ {t.playHistory}</button>
       {lastVisiblePlay && <div className="last-player"><small>{t.lastPlayBy}</small><b>{game.players[lastVisiblePlay.seat].name}</b></div>}

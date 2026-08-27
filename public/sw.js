@@ -1,5 +1,5 @@
-const CACHE = "quattro-regni-v66-contested-discard";
-const APP_SHELL = ["/", "/offline.html", "/manifest.webmanifest", "/favicon.ico", "/favicon-32.png", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png", "/hero-four-kings-v2.png", "/logo-four-realms-v6.png"];
+const CACHE = "murlan-v1-multilingual";
+const APP_SHELL = ["/", "/offline.html", "/manifest.webmanifest", "/favicon.ico", "/favicon-32.png", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(APP_SHELL)));

@@ -51,6 +51,7 @@ export function canBeat(candidate: Omit<Play, "seat" | "cards">, cardsLength: nu
   return candidate.value > current.value || candidate.value === current.value && candidate.suit > current.suit;
 }
 function nextActive(state: GameState, from: number) { for (let n = 1; n <= 4; n++) { const seat = (from + n) % 4; if (!state.finishOrder.includes(seat)) return seat; } return from; }
+function activeSeats(state: GameState) { return [0, 1, 2, 3].filter((seat) => !state.finishOrder.includes(seat)); }
 
 function deal(state: GameState) {
   const deck = shuffle(createDeck()); state.hands = [[], [], [], []]; deck.forEach((card, index) => state.hands[index % 4].push(card));
@@ -88,8 +89,15 @@ function playInternal(state: GameState, seat: number, cardIds: string[]) {
 }
 function passInternal(state: GameState, seat: number) {
   if (state.phase !== "playing" || seat !== state.turn) throw new Error("Non è il tuo turno."); if (!state.currentPlay) throw new Error("Chi apre il giro non può passare.");
-  state.passes.push(seat); state.log.unshift(`${state.players[seat].name} passa.`); const active = 4 - state.finishOrder.length;
-  if (state.passes.length >= active - 1) { const opener = state.finishOrder.includes(state.leader) ? nextActive(state, state.leader) : state.leader; state.turn = opener; state.leader = opener; state.passes = []; delete state.currentPlay; state.log.unshift(`${state.players[opener].name} apre un nuovo giro.`); } else state.turn = nextActive(state, seat);
+  if (!state.passes.includes(seat)) state.passes.push(seat);
+  state.log.unshift(`${state.players[seat].name} passa.`);
+  const stillPlaying = activeSeats(state);
+  const everyoneElsePassed = stillPlaying.every((activeSeat) => activeSeat === state.leader || state.passes.includes(activeSeat));
+  if (everyoneElsePassed) {
+    const opener = state.finishOrder.includes(state.leader) ? nextActive(state, state.leader) : state.leader;
+    state.turn = opener; state.leader = opener; state.passes = []; delete state.currentPlay;
+    state.log.unshift(`${state.players[opener].name} apre un nuovo giro.`);
+  } else state.turn = nextActive(state, seat);
 }
 function combinations(hand: Card[], current?: Play, mustContain?: string) {
   const found: Card[][] = []; const add = (cards: Card[]) => { if (mustContain && !cards.some((c) => c.id === mustContain)) return; const combo = classify(cards); if (combo && canBeat(combo, cards.length, current)) found.push(cards); };

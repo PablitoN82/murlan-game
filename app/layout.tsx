@@ -18,13 +18,13 @@ export const metadata: Metadata = {
     openGraph: {
       type: "website",
       title: "murlan-game.dev",
-      description: "Quattro giocatori. Due squadre. Una sola carta può cambiare il tavolo.",
+      description: "Murlan online con amici o bot, in quattro lingue.",
       images: [{ url: "/og.png", width: 1200, height: 630, alt: "Murlan" }],
     },
     twitter: {
       card: "summary_large_image",
       title: "murlan-game.dev",
-      description: "Quattro giocatori. Due squadre. Una sola carta può cambiare il tavolo.",
+      description: "Murlan online con amici o bot, in quattro lingue.",
       images: ["/og.png"],
     },
 };

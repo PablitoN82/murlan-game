@@ -17,6 +17,7 @@ const suits: Suit[] = ["H", "D", "C", "S"];
 const rankValue = (rank: Rank) => ranks.indexOf(rank);
 const suitValue = (suit: Suit) => ({ H: 0, D: 1, C: 2, S: 3, X: 4 })[suit];
 const cardLabel = (c: Card) => c.rank === "BJ" ? "Jolly Nero" : c.rank === "RJ" ? "Jolly Rosso" : `${c.rank}${({ H: "♥", D: "♦", C: "♣", S: "♠", X: "" })[c.suit]}`;
+const completesBomb = (hand: Card[], card: Card) => card.suit !== "X" && hand.filter((held) => held.rank === card.rank).length >= 3;
 
 export function createDeck() {
   const deck: Card[] = [];
@@ -62,11 +63,13 @@ function deal(state: GameState) {
   if (state.handNumber === 1) state.turn = state.hands.findIndex((hand) => hand.some((card) => card.id === "3-S"));
   else {
     const previous = state.lastResult?.order ?? [0, 1, 2, 3]; const first = previous[0], last = previous[3];
-    const bothJokers = state.hands[last].some((c) => c.rank === "BJ") && state.hands[last].some((c) => c.rank === "RJ");
-    if (!bothJokers) {
-      const give = [...state.hands[last]].sort((a, b) => rankValue(b.rank) - rankValue(a.rank) || suitValue(b.suit) - suitValue(a.suit))[0];
-      if (give) { state.hands[last] = state.hands[last].filter((card) => card.id !== give.id); state.hands[first].push(give); state.pendingExchange = { first, last, giveCardId: give.id }; state.phase = "exchange"; state.turn = first; }
-    } else { state.phase = "playing"; state.turn = first; state.log.unshift("Scambio annullato: l’ultimo classificato possiede entrambi i Jolly."); }
+    const bothJokers = state.hands.some((hand) => hand.some((c) => c.rank === "BJ") && hand.some((c) => c.rank === "RJ"));
+    const give = [...state.hands[last]].sort((a, b) => rankValue(b.rank) - rankValue(a.rank) || suitValue(b.suit) - suitValue(a.suit))[0];
+    const createsBomb = !!give && completesBomb(state.hands[first], give);
+    const hasValidReturn = state.hands[first].some((card) => card.suit !== "X" && rankValue(card.rank) <= rankValue("10") && !completesBomb(state.hands[last].filter((held) => held.id !== give?.id), card));
+    if (!bothJokers && !createsBomb && hasValidReturn && give) {
+      state.hands[last] = state.hands[last].filter((card) => card.id !== give.id); state.hands[first].push(give); state.pendingExchange = { first, last, giveCardId: give.id }; state.phase = "exchange"; state.turn = first;
+    } else { state.phase = "playing"; state.turn = first; state.log.unshift(bothJokers ? "Scambio annullato: un giocatore possiede entrambi i Jolly." : createsBomb ? "Scambio annullato: la carta ceduta completerebbe una Bomba." : "Scambio annullato: nessuna restituzione valida senza creare una Bomba."); }
   }
   state.leader = state.turn; state.players.forEach((p, i) => p.cards = state.hands[i].length);
 }
@@ -108,6 +111,7 @@ function exchangeInternal(state: GameState, seat: number, cardId: string) {
   const back = state.hands[seat].find((card) => card.id === cardId);
   const give = state.hands[seat].find((card) => card.id === pending.giveCardId);
   if (!back || back.id === pending.giveCardId || rankValue(back.rank) > rankValue("10") || back.suit === "X") throw new Error("Devi restituire una tua carta compresa tra 3 e 10.");
+  if (completesBomb(state.hands[pending.last], back)) throw new Error("Questa carta completerebbe una Bomba: scegline un’altra.");
   if (!give) throw new Error("La carta dello scambio non è disponibile.");
   state.hands[seat] = state.hands[seat].filter((card) => card.id !== back.id);
   state.hands[pending.last].push(back);
@@ -135,7 +139,7 @@ export function runBots(state: GameState) {
   let guard = 0;
   while ((state.phase === "playing" || state.phase === "exchange") && state.players[state.turn]?.bot && guard++ < 100) {
     const seat = state.turn;
-    if (state.phase === "exchange") { const back = [...state.hands[seat]].filter((card) => card.id !== state.pendingExchange?.giveCardId && card.suit !== "X" && rankValue(card.rank) <= rankValue("10")).sort((a,b) => rankValue(a.rank)-rankValue(b.rank) || suitValue(a.suit)-suitValue(b.suit))[0]; if (!back) throw new Error("Il bot non ha una carta valida per lo scambio."); exchangeInternal(state, seat, back.id); continue; }
+    if (state.phase === "exchange") { const recipient = state.hands[state.pendingExchange!.last]; const back = [...state.hands[seat]].filter((card) => card.id !== state.pendingExchange?.giveCardId && card.suit !== "X" && rankValue(card.rank) <= rankValue("10") && !completesBomb(recipient, card)).sort((a,b) => rankValue(a.rank)-rankValue(b.rank) || suitValue(a.suit)-suitValue(b.suit))[0]; if (!back) { state.phase = "playing"; state.turn = seat; delete state.pendingExchange; state.log.unshift("Scambio annullato: nessuna restituzione valida senza creare una Bomba."); continue; } exchangeInternal(state, seat, back.id); continue; }
     const teammateLeads = !!state.currentPlay && state.players[state.currentPlay.seat].team === state.players[seat].team;
     if (teammateLeads) { passInternal(state, seat); continue; }
     const options = combinations(state.hands[seat], state.currentPlay, state.openingPlay ? "3-S" : undefined);

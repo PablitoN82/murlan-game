@@ -3,12 +3,21 @@ import { env } from "cloudflare:workers";
 const targetNames = { it: "Italian", en: "English", es: "Spanish", sq: "Albanian" } as const;
 
 async function fallbackTranslate(text: string, target: keyof typeof targetNames) {
-  const url = new URL("https://translate.googleapis.com/translate_a/single");
-  url.searchParams.set("client", "gtx"); url.searchParams.set("sl", "auto"); url.searchParams.set("tl", target); url.searchParams.set("dt", "t"); url.searchParams.set("q", text);
-  const response = await fetch(url, { headers: { "User-Agent": "Murlan/1.0" } });
-  if (!response.ok) throw new Error("Fallback translation failed");
-  const data = await response.json() as Array<Array<Array<string>>>;
-  return data[0]?.map((part) => part[0]).join("").trim();
+  try {
+    const url = new URL("https://translate.googleapis.com/translate_a/single");
+    url.searchParams.set("client", "gtx"); url.searchParams.set("sl", "auto"); url.searchParams.set("tl", target); url.searchParams.set("dt", "t"); url.searchParams.set("q", text);
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Google translation failed");
+    const data = await response.json() as Array<Array<Array<string>>>;
+    const translated = data[0]?.map((part) => part[0]).join("").trim();
+    if (translated) return translated;
+  } catch { /* try the independent translation-memory service below */ }
+  const memoryUrl = new URL("https://api.mymemory.translated.net/get");
+  memoryUrl.searchParams.set("q", text); memoryUrl.searchParams.set("langpair", `Autodetect|${target}`); memoryUrl.searchParams.set("mt", "1");
+  const memoryResponse = await fetch(memoryUrl);
+  if (!memoryResponse.ok) throw new Error("Translation fallback failed");
+  const memoryData = await memoryResponse.json() as { responseData?: { translatedText?: string } };
+  return memoryData.responseData?.translatedText?.trim();
 }
 
 export async function POST(request: Request) {

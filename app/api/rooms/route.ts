@@ -22,13 +22,14 @@ function response(room: typeof rooms.$inferSelect, player: typeof players.$infer
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json() as { operation?: "create" | "join"; name?: string; code?: string; humanCount?: number };
+    const body = await request.json() as { operation?: "create" | "join"; name?: string; code?: string; humanCount?: number; botNames?: string[] };
     const name = normalizePlayerName(body.name); if (!name) return Response.json({ error: "Inserisci il tuo nome." }, { status: 400 });
     const db = getDb(); const playerId = crypto.randomUUID(); const token = crypto.randomUUID();
     if (body.operation === "create") {
       const humanCount = Math.max(1, Math.min(4, Math.floor(body.humanCount ?? 1))); let code = makeRoomCode();
       for (let i = 0; i < 5 && (await db.select({ id: rooms.id }).from(rooms).where(eq(rooms.code, code)).limit(1)).length; i++) code = makeRoomCode();
-      const roomId = crypto.randomUUID(); const state = waitingState(humanCount, name); if (humanCount === 1) startGame(state);
+      const botNames = Array.isArray(body.botNames) ? body.botNames.slice(0, 3).map((value) => normalizePlayerName(value) || "") : [];
+      const roomId = crypto.randomUUID(); const state = waitingState(humanCount, name, botNames); if (humanCount === 1) startGame(state);
       const room = { id: roomId, code, status: state.phase, state: JSON.stringify(state), version: 1 };
       const player = { id: playerId, roomId, seat: 0, name, tokenHash: await hash(token), lastSeenAt: new Date().toISOString() };
       await db.batch([db.insert(rooms).values(room), db.insert(players).values(player)]);

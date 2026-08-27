@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { applyAction, runBots, type Card, type GameState } from "../lib/game";
+import { applyAction, runBots, startGame, waitingState, type Card, type GameState } from "../lib/game";
 
 const card = (rank: Card["rank"], suit: Card["suit"]): Card => ({ id: `${rank}-${suit}`, rank, suit });
 
@@ -58,4 +58,10 @@ test("un bot non supera mai la giocata del proprio compagno", () => {
   runBots(state);
   assert.ok(state.hands[2].some((item) => item.id === "2-S"));
   assert.ok(state.log.includes("Bot 3 passa."));
+});
+
+test("i bot usano i nomi scelti dall'utente", () => {
+  const state = waitingState(1, "Paolo", ["Lupo", "Aquila", "Volpe"]);
+  startGame(state);
+  assert.deepEqual(state.players.map((player) => player.name), ["Paolo", "Lupo", "Aquila", "Volpe"]);
 });

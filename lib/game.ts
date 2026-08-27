@@ -8,7 +8,7 @@ export type Player = { name: string; bot: boolean; team: 0 | 1; cards: number };
 export type GameState = {
   phase: GamePhase; humanCount: number; players: Player[]; hands: Card[][]; turn: number; leader: number;
   currentPlay?: Play; passes: number[]; finishOrder: number[]; scores: [number, number]; target: number;
-  handNumber: number; openingPlay: boolean; lastResult?: { order: number[]; points: [number, number] }; log: string[];
+  handNumber: number; openingPlay: boolean; botNames?: string[]; lastResult?: { order: number[]; points: [number, number] }; log: string[];
 };
 export type PublicGameState = Omit<GameState, "hands"> & { hand: Card[] };
 
@@ -70,8 +70,8 @@ function deal(state: GameState) {
   state.leader = state.turn; state.players.forEach((p, i) => p.cards = state.hands[i].length);
 }
 
-export function waitingState(humanCount: number, hostName: string): GameState { return { phase: "waiting", humanCount, players: [{ name: hostName, bot: false, team: 0, cards: 0 }], hands: [[], [], [], []], turn: 0, leader: 0, passes: [], finishOrder: [], scores: [0, 0], target: 21, handNumber: 1, openingPlay: true, log: ["Stanza creata. In attesa dei compagni..."] }; }
-export function startGame(state: GameState) { while (state.players.length < 4) { const seat = state.players.length; state.players.push({ name: `Bot ${seat + 1}`, bot: true, team: (seat % 2) as 0 | 1, cards: 0 }); } state.players.forEach((p, seat) => p.team = (seat % 2) as 0 | 1); state.phase = "playing"; state.log = ["La partita è iniziata. Il 3♠ apre la prima mano."]; deal(state); return runBots(state); }
+export function waitingState(humanCount: number, hostName: string, botNames: string[] = []): GameState { return { phase: "waiting", humanCount, botNames, players: [{ name: hostName, bot: false, team: 0, cards: 0 }], hands: [[], [], [], []], turn: 0, leader: 0, passes: [], finishOrder: [], scores: [0, 0], target: 21, handNumber: 1, openingPlay: true, log: ["Stanza creata. In attesa dei compagni..."] }; }
+export function startGame(state: GameState) { while (state.players.length < 4) { const seat = state.players.length; const customName = state.botNames?.[seat - state.humanCount]?.trim(); state.players.push({ name: customName || `Bot ${seat + 1}`, bot: true, team: (seat % 2) as 0 | 1, cards: 0 }); } state.players.forEach((p, seat) => p.team = (seat % 2) as 0 | 1); state.phase = "playing"; state.log = ["La partita è iniziata. Il 3♠ apre la prima mano."]; deal(state); return runBots(state); }
 function finishHand(state: GameState) {
   const pts = [3, 2, 1, 0]; const teamPoints: [number, number] = [0, 0]; state.finishOrder.forEach((seat, place) => teamPoints[state.players[seat].team] += pts[place]);
   state.scores[0] += teamPoints[0]; state.scores[1] += teamPoints[1]; state.lastResult = { order: [...state.finishOrder], points: teamPoints };

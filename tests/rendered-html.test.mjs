@@ -35,4 +35,6 @@ test("include il regolamento Murlan 2026", async () => {
   assert.match(copy, /English/);
   assert.match(copy, /Español/);
   assert.match(copy, /Shqip/);
+  assert.match(page, /pass-play/);
+  assert.match(page, /LOCAL_STORE/);
 });

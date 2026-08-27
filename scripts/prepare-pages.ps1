@@ -44,6 +44,21 @@ New-Item -ItemType Directory -Path $resolvedOutput | Out-Null
 
 Get-ChildItem -LiteralPath $clientRoot -Force | Copy-Item -Destination $resolvedOutput -Recurse -Force
 
+# Precarica ogni bundle, foglio di stile e font prodotto dalla build. In questo
+# modo la prima installazione è davvero utilizzabile in modalità aereo, senza
+# richiedere un secondo caricamento della pagina.
+$serviceWorkerPath = Join-Path $resolvedOutput "sw.js"
+if (Test-Path -LiteralPath $serviceWorkerPath) {
+  $outputPrefixLength = $resolvedOutput.TrimEnd([System.IO.Path]::DirectorySeparatorChar).Length + 1
+  $buildAssets = @(Get-ChildItem -LiteralPath (Join-Path $resolvedOutput "assets") -File -Recurse | ForEach-Object {
+    "/" + $_.FullName.Substring($outputPrefixLength).Replace("\", "/")
+  })
+  $encodedAssets = ($buildAssets | ForEach-Object { '"' + $_.Replace('"', '\"') + '"' }) -join ","
+  $serviceWorker = Get-Content -LiteralPath $serviceWorkerPath -Raw -Encoding utf8
+  $serviceWorker = $serviceWorker.Replace('"__BUILD_ASSETS__"', $encodedAssets)
+  Set-Content -LiteralPath $serviceWorkerPath -Value $serviceWorker -Encoding utf8
+}
+
 Get-ChildItem -LiteralPath $serverRoot -Force |
   Where-Object { $_.Name -notin @("index.js", "wrangler.json") } |
   Copy-Item -Destination $resolvedOutput -Recurse -Force

@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-    metadataBase: new URL("https://murlan-game.dev"),
+    metadataBase: new URL("https://murlan-game.pages.dev"),
     title: "Murlan Game",
     description: "Murlan online per quattro giocatori, a squadre, con amici o bot.",
     applicationName: "Murlan Game",
@@ -40,6 +40,15 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="it">
+      <head>
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <link rel="icon" href="/murlan-icon-192.png" type="image/png" sizes="192x192" />
+        <link rel="apple-touch-icon" href="/murlan-apple-touch-icon.png" sizes="180x180" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <script dangerouslySetInnerHTML={{ __html: `if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js',{scope:'/'}).then(function(r){r.update()}).catch(function(){})})}` }} />
+      </head>
       <body>{children}</body>
     </html>
   );

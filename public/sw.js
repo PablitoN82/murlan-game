@@ -1,5 +1,8 @@
-const CACHE = "murlan-v1-multilingual";
-const APP_SHELL = ["/", "/offline.html", "/manifest.webmanifest", "/favicon.ico", "/favicon-32.png", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png"];
+const CACHE = "murlan-v2-airplane";
+const cardRanks = ["3","4","5","6","7","8","9","10","jack","queen","king","ace","2"];
+const cardSuits = ["hearts","diamonds","clubs","spades"];
+const CARD_ASSETS = cardSuits.flatMap((suit) => cardRanks.map((rank) => `/cards/${rank}_of_${suit}.svg`)).concat(["/cards/joker_black_v4.webp","/cards/joker_red_v4.webp"]);
+const APP_SHELL = ["/", "/offline.html", "/manifest.webmanifest", "/favicon.ico", "/favicon-32.png", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png", ...CARD_ASSETS];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(APP_SHELL)));

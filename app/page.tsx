@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { Card, ComboKind, PublicGameState, Suit } from "../lib/game";
+import { addHuman, applyAction, publicState, startGame, waitingState, type Card, type ComboKind, type GameState, type PublicGameState, type Suit } from "../lib/game";
 import { languages, translations, translateError, translateLog, type Copy, type Language } from "../lib/i18n";
 import "./game.css";
 
@@ -10,6 +10,7 @@ type LobbyMessage = { id: number; name: string; text: string; roomCode?: string 
 type InstallPromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: "accepted" | "dismissed" }> };
 const STORE = "murlan-session-v1";
 const LOCAL_STORE = "murlan-pass-play-v1";
+const OFFLINE_STORE = "murlan-offline-game-v1";
 const rankFile: Record<string, string> = { "3": "3", "4": "4", "5": "5", "6": "6", "7": "7", "8": "8", "9": "9", "10": "10", J: "jack", Q: "queen", K: "king", A: "ace", "2": "2" };
 const suitFile: Record<string, string> = { H: "hearts", D: "diamonds", C: "clubs", S: "spades" };
 const order = ["3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A", "2", "BJ", "RJ"];
@@ -29,7 +30,7 @@ async function browserTranslation(text: string, target: Language) { const source
 export default function Home() {
   const [session, setSession] = useState<Session | null>(null); const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [name, setName] = useState(""); const [code, setCode] = useState(""); const [humans, setHumans] = useState(1); const [selected, setSelected] = useState<string[]>([]);
-  const [mode, setMode] = useState<"online" | "pass-play">("online"); const [botNames, setBotNames] = useState(["", "", ""]); const [localNames, setLocalNames] = useState(["", "", "", ""]); const [localHumans, setLocalHumans] = useState(1);
+  const [mode, setMode] = useState<"online" | "pass-play">("online"); const [offlineMode, setOfflineMode] = useState(false); const [offlineGame, setOfflineGame] = useState<GameState | null>(null); const [botNames, setBotNames] = useState(["", "", ""]); const [localNames, setLocalNames] = useState(["", "", "", ""]); const [localHumans, setLocalHumans] = useState(1);
   const [localSessions, setLocalSessions] = useState<Session[]>([]); const [handoff, setHandoff] = useState(false);
   const [visiblePileCount, setVisiblePileCount] = useState(0);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -41,8 +42,8 @@ export default function Home() {
   const saveSession = (next: Session) => { setSession(next); localStorage.setItem(STORE, JSON.stringify(next)); };
   const request = useCallback(async (url: string, init?: RequestInit) => { const res = await fetch(url, init); const data = await res.json(); if (!res.ok) throw new Error(data.error ?? "Errore inatteso."); return data as Snapshot; }, []);
   const refresh = useCallback(async (active: Session) => { try { const data = await request(`/api/rooms?code=${active.code}&playerId=${active.playerId}&token=${active.token}`); setSnapshot(data); } catch { /* session may have expired */ } }, [request]);
-  useEffect(() => { const savedLang = localStorage.getItem("murlan-language") as Language | null; if (savedLang && translations[savedLang]) setLang(savedLang); const rawLocal = localStorage.getItem(LOCAL_STORE); const raw = localStorage.getItem(STORE); const query = new URLSearchParams(location.search).get("room"); if (query) setCode(query.toUpperCase()); if (rawLocal) { try { const sessions = JSON.parse(rawLocal) as Session[]; if (sessions.length > 0) { setLocalSessions(sessions); setSession(sessions[0]); setHandoff(true); refresh(sessions[0]); return; } } catch { localStorage.removeItem(LOCAL_STORE); } } if (raw) { try { const active = JSON.parse(raw) as Session; saveSession(active); refresh(active); } catch { localStorage.removeItem(STORE); } } }, [refresh]);
-  useEffect(() => { if (!session) return; const timer = setInterval(() => refresh(session), 1800); return () => clearInterval(timer); }, [session, refresh]);
+  useEffect(() => { const savedLang = localStorage.getItem("murlan-language") as Language | null; if (savedLang && translations[savedLang]) setLang(savedLang); const rawOffline = localStorage.getItem(OFFLINE_STORE); const rawLocal = localStorage.getItem(LOCAL_STORE); const raw = localStorage.getItem(STORE); const query = new URLSearchParams(location.search).get("room"); if (query) setCode(query.toUpperCase()); if (rawOffline) { try { const saved = JSON.parse(rawOffline) as { game: GameState; sessions: Session[]; activeSeat: number }; const active = saved.sessions.find((item) => item.seat === saved.activeSeat) ?? saved.sessions[0]; setOfflineGame(saved.game); setOfflineMode(true); setLocalSessions(saved.sessions); setSession(active); setSnapshot({ room:{ code:"AEREO", status:saved.game.phase, version:saved.game.handNumber }, player:{ id:active.playerId, name:active.name, seat:active.seat }, game:publicState(saved.game, active.seat) }); setHandoff(true); return; } catch { localStorage.removeItem(OFFLINE_STORE); } } if (rawLocal) { try { const sessions = JSON.parse(rawLocal) as Session[]; if (sessions.length > 0) { setLocalSessions(sessions); setSession(sessions[0]); setHandoff(true); refresh(sessions[0]); return; } } catch { localStorage.removeItem(LOCAL_STORE); } } if (raw) { try { const active = JSON.parse(raw) as Session; saveSession(active); refresh(active); } catch { localStorage.removeItem(STORE); } } }, [refresh]);
+  useEffect(() => { if (!session || offlineGame) return; const timer = setInterval(() => refresh(session), 1800); return () => clearInterval(timer); }, [session, refresh, offlineGame]);
   useEffect(() => { if (visiblePileCount > pileLength) { setVisiblePileCount(0); return; } if (visiblePileCount < pileLength) { const timer = setTimeout(() => setVisiblePileCount((count) => count + 1), visiblePileCount ? 1500 : 650); return () => clearTimeout(timer); } }, [pileLength, visiblePileCount]);
   useEffect(() => {
     if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
@@ -58,6 +59,7 @@ export default function Home() {
   }
   async function startPassPlay() {
     if (localNames.slice(0, localHumans).some((value) => !value.trim())) return;
+    if (offlineMode) { startOfflinePassPlay(); return; }
     setBusy(true); setError("");
     try {
       const created = await request("/api/rooms", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ operation:"create", name:localNames[0], humanCount:localHumans, botNames:botNames.slice(0,4-localHumans) }) });
@@ -68,13 +70,27 @@ export default function Home() {
       const active = sessions.find((item) => item.seat === latest.game.turn) ?? sessions[0]; setSession(active); await refresh(active); setHandoff(true); history.replaceState({}, "", location.pathname);
     } catch (e) { setError(translateError(e instanceof Error ? e.message : "Errore inatteso.", lang)); } finally { setBusy(false); }
   }
+  function showOfflineState(nextGame: GameState, sessions: Session[], active: Session, handoffScreen = true) {
+    setOfflineGame(nextGame); setLocalSessions(sessions); setSession(active); setHandoff(handoffScreen);
+    setSnapshot({ room:{ code:"AEREO", status:nextGame.phase, version:Date.now() }, player:{ id:active.playerId, name:active.name, seat:active.seat }, game:publicState(nextGame, active.seat) });
+    localStorage.setItem(OFFLINE_STORE, JSON.stringify({ game:nextGame, sessions, activeSeat:active.seat }));
+  }
+  function startOfflinePassPlay() {
+    const nextGame = waitingState(localHumans, localNames[0], botNames.slice(0, 4-localHumans));
+    if (localHumans === 1) startGame(nextGame); else for (let index = 1; index < localHumans; index++) addHuman(nextGame, localNames[index]);
+    const sessions = Array.from({ length:localHumans }, (_,seat) => ({ code:"AEREO", playerId:`offline-${seat}`, token:"", name:localNames[seat], seat }));
+    const active = sessions.find((item) => item.seat === nextGame.turn) ?? sessions[0];
+    localStorage.removeItem(STORE); localStorage.removeItem(LOCAL_STORE); showOfflineState(nextGame, sessions, active);
+    history.replaceState({}, "", location.pathname);
+  }
   async function action(type: "play" | "pass" | "exchange") {
     if (!session || !snapshot) return; setBusy(true); setError("");
+    if (offlineGame) { try { const nextGame = structuredClone(offlineGame); applyAction(nextGame, session.seat, { type, cardIds:type === "play" || type === "exchange" ? selected : undefined }); setSelected([]); const next = localSessions.find((item) => item.seat === nextGame.turn) ?? session; showOfflineState(nextGame, localSessions, next, next.seat !== session.seat); } catch (e) { setError(translateError(e instanceof Error ? e.message : "Errore inatteso.", lang)); } finally { setBusy(false); } return; }
     try { const data = await request("/api/rooms", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: session.code, playerId: session.playerId, token: session.token, version: snapshot.room.version, action: { type, cardIds: type === "play" || type === "exchange" ? selected : undefined } }) }); setSelected([]); if (localSessions.length && (data.game.phase === "playing" || data.game.phase === "exchange")) { const next = localSessions.find((item) => item.seat === data.game.turn); if (next) { setSession(next); await refresh(next); setHandoff(true); } else setSnapshot(data); } else setSnapshot(data); }
     catch (e) { setError(translateError(e instanceof Error ? e.message : "Errore inatteso.", lang)); await refresh(session); } finally { setBusy(false); }
   }
   async function share() { const url = `${location.origin}${location.pathname}?room=${session?.code}`; await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1800); }
-  function leave() { localStorage.removeItem(STORE); localStorage.removeItem(LOCAL_STORE); setLocalSessions([]); setHandoff(false); setSession(null); setSnapshot(null); setSelected([]); history.replaceState({}, "", location.pathname); }
+  function leave() { localStorage.removeItem(STORE); localStorage.removeItem(LOCAL_STORE); localStorage.removeItem(OFFLINE_STORE); setOfflineGame(null); setLocalSessions([]); setHandoff(false); setSession(null); setSnapshot(null); setSelected([]); history.replaceState({}, "", location.pathname); }
   function changeLanguage(next: Language) { setLang(next); localStorage.setItem("murlan-language", next); document.documentElement.lang = next; }
   async function installApp() { if (!installPrompt) return; await installPrompt.prompt(); await installPrompt.userChoice; setInstallPrompt(null); }
   const languageMenu = <LanguageMenu value={lang} onChange={changeLanguage} />;
@@ -93,6 +109,7 @@ export default function Home() {
           <button className="primary" disabled={busy || !name.trim()} onClick={() => enter("create")}>{t.create}</button>
           <div className="or"><span>{t.orCode}</span></div><div className="join-row"><input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} maxLength={13} placeholder="MURLAN-XXXXXX" /><button disabled={busy || !name.trim() || code.length < 6} onClick={() => enter("join")}>{t.join}</button></div>
         </> : <>
+          <button type="button" className={`airplane-mode ${offlineMode ? "active" : ""}`} onClick={() => setOfflineMode((active) => !active)}><span>✈</span><b>{t.airplaneMode}</b><small>{offlineMode ? t.airplaneOn : t.airplaneOff}</small></button>
           <div className="entry-tabs"><span>{t.passPlayMode}</span><span>{localHumans} + {4-localHumans}</span></div>
           <label>{t.howMany}<div className="people-picker">{[1,2,3,4].map((n) => <button key={n} type="button" onClick={() => setLocalHumans(n)} className={localHumans === n ? "active" : ""}><b>{n}</b><small>{n === 1 ? t.youBots : n === 4 ? t.allHuman : `${n} ${t.humans}`}</small></button>)}</div></label>
           <fieldset className="name-grid local-names"><legend>{t.localPlayers}</legend>{localNames.slice(0,localHumans).map((value,index) => <input key={index} value={value} onChange={(event) => setLocalNames((old) => old.map((name,i) => i === index ? event.target.value : name))} maxLength={24} placeholder={`${t.player} ${index + 1}`} />)}</fieldset>

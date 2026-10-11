@@ -3,6 +3,7 @@ import { getDb } from "../../../db";
 import { gameEvents, players, rooms } from "../../../db/schema";
 import { addHuman, applyAction, publicState, startGame, waitingState, type GameState } from "../../../lib/game";
 import { isValidRoomCode, makeRoomCode, normalizePlayerName, normalizeRoomCode } from "../../../lib/room-security";
+import { requireAccess } from "../../../lib/access";
 
 async function hash(value: string) {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
@@ -22,6 +23,7 @@ function response(room: typeof rooms.$inferSelect, player: typeof players.$infer
 
 export async function POST(request: Request) {
   try {
+    await requireAccess(request);
     const body = await request.json() as { operation?: "create" | "join"; name?: string; code?: string; humanCount?: number; botNames?: string[] };
     const name = normalizePlayerName(body.name); if (!name) return Response.json({ error: "Inserisci il tuo nome." }, { status: 400 });
     const db = getDb(); const playerId = crypto.randomUUID(); const token = crypto.randomUUID();
@@ -46,6 +48,7 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
+    await requireAccess(request);
     const url = new URL(request.url); const { db, room, player } = await auth(url.searchParams.get("code") ?? "", url.searchParams.get("playerId") ?? "", url.searchParams.get("token") ?? "");
     await db.update(players).set({ lastSeenAt: new Date().toISOString() }).where(eq(players.id, player.id));
     return response(room, player, undefined, JSON.parse(room.state) as GameState);
@@ -54,6 +57,7 @@ export async function GET(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
+    await requireAccess(request);
     const body = await request.json() as { code?: string; playerId?: string; token?: string; version?: number; action?: { type: "play" | "pass" | "exchange"; cardIds?: string[] } };
     if (!body.code || !body.playerId || !body.token || !body.action) throw new Error("Richiesta incompleta.");
     const { db, room, player } = await auth(body.code, body.playerId, body.token); if (body.version !== room.version) return Response.json({ error: "La partita è stata aggiornata.", stale: true }, { status: 409 });

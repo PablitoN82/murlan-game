@@ -96,3 +96,18 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 
 - [vinext Documentation](https://github.com/cloudflare/vinext)
 - [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+# Access Key applicativa
+
+La pagina mostra esclusivamente la schermata neutra di accesso finché il dispositivo non presenta una Access Key valida. La chiave non viene mai salvata nel browser: il server conserva solo SHA-256 e crea il cookie HttpOnly `murlan_access`. La revoca della chiave revoca a cascata tutte le sessioni dispositivo.
+
+Migration: `drizzle/0004_access_keys.sql` (in produzione: `npx wrangler d1 migrations apply murlan-game-db --remote`).
+
+Segreti/variabili: configurare il secret `ACCESS_ADMIN_SECRET` con `npx wrangler secret put ACCESS_ADMIN_SECRET`. Il binding D1 resta `DB`.
+
+Prima chiave: `node scripts/create-access-key.mjs "Paolo"`, quindi inserire il solo `id`, `label` e `hash` prodotti nell'endpoint amministrativo o in D1:
+`INSERT INTO access_keys (id,label,hash,active) VALUES ('ID','Paolo','HASH',1);`
+La stringa `key` completa va consegnata una sola volta e non va archiviata.
+
+Amministrazione via `POST /api/access/admin` con header `Authorization: Bearer ACCESS_ADMIN_SECRET` (creazione), `GET` (elenco senza hash) e `PATCH` con `{ "keyId": "..." }` o `{ "sessionId": "..." }` (revoca).
+
+Deploy: `npm ci`; `npm run db:generate`; `npm run build:pages`; `npx wrangler d1 migrations apply murlan-game-db --remote`; `npx wrangler pages deploy dist/pages-deploy --project-name murlan-game`.

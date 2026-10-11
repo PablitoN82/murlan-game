@@ -28,7 +28,18 @@ function CardToken({ card }: { card: Card }) {
 function chatSource(text: string): Language { const value = ` ${text.toLowerCase()} `; if (/[ëç]/.test(value) || /\b(dhe|është|jam|nuk|për|luaj|dhomë|dua)\b/.test(value)) return "sq"; if (/[¿¡ñáéíóú]/.test(value) || /\b(quieres|jugar|sala|hola|gracias|entra|estoy)\b/.test(value)) return "es"; if (/\b(the|you|want|play|room|hello|thanks|join|game)\b/.test(value)) return "en"; return "it"; }
 async function browserTranslation(text: string, target: Language) { const source = chatSource(text); if (source === target) return text; const url = new URL("https://api.mymemory.translated.net/get"); url.searchParams.set("q", text); url.searchParams.set("langpair", `${source}|${target}`); url.searchParams.set("mt", "1"); const response = await fetch(url); if (!response.ok) throw new Error("Translation failed"); const data = await response.json() as { responseData?: { translatedText?: string } }; if (!data.responseData?.translatedText) throw new Error("Translation failed"); return data.responseData.translatedText; }
 
-export default function Home() {
+export default function Home() { return <AccessGate><GameHome /></AccessGate>; }
+
+function AccessGate({ children }: { children: React.ReactNode }) {
+  const [ready, setReady] = useState(false); const [authorized, setAuthorized] = useState(false); const [key, setKey] = useState(""); const [busy, setBusy] = useState(false); const [error, setError] = useState("");
+  useEffect(() => { fetch("/api/access", { credentials: "include" }).then((r) => { setAuthorized(r.ok); setReady(true); }).catch(() => setReady(true)); }, []);
+  async function submit(event: React.FormEvent) { event.preventDefault(); setBusy(true); setError(""); try { const response = await fetch("/api/access", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key }) }); const data = await response.json() as { error?: string }; if (!response.ok) throw new Error(data.error ?? "Chiave non valida."); setAuthorized(true); } catch (e) { setError(e instanceof Error ? e.message : "Servizio non disponibile."); } finally { setBusy(false); } }
+  if (!ready) return <main className="access-gate"><section><div className="access-mark">M</div><h1>Accesso riservato</h1><p>Verifica in corso…</p></section></main>;
+  if (authorized) return <>{children}</>;
+  return <main className="access-gate"><section><div className="access-mark">M</div><p className="eyebrow">MURLAN</p><h1>Accesso riservato</h1><p>Inserisci chiave di accesso</p><form onSubmit={submit}><input value={key} onChange={(e) => setKey(e.target.value.toUpperCase())} placeholder="CAS-XXXX-XXXX-XXXX" autoComplete="off" spellCheck={false} maxLength={16} /><button className="primary" disabled={busy || key.length < 16}>{busy ? "Verifica…" : "Entra"}</button></form>{error && <p className="error">{error}</p>}</section></main>;
+}
+
+function GameHome() {
   const [session, setSession] = useState<Session | null>(null); const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [name, setName] = useState(""); const [code, setCode] = useState(""); const [humans, setHumans] = useState(1); const [selected, setSelected] = useState<string[]>([]);
   const [mode, setMode] = useState<"online" | "pass-play">("online"); const [offlineMode, setOfflineMode] = useState(false); const [offlineGame, setOfflineGame] = useState<GameState | null>(null); const [botNames, setBotNames] = useState(["", "", ""]); const [localNames, setLocalNames] = useState(["", "", "", ""]); const [localHumans, setLocalHumans] = useState(1);

@@ -46,3 +46,19 @@ export const lobbyMessages = sqliteTable("lobby_messages", {
   roomCode: text("room_code"),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
+
+export const accessKeys = sqliteTable("access_keys", {
+  id: text("id").primaryKey(), label: text("label").notNull(), hash: text("hash").notNull().unique(),
+  active: integer("active", { mode: "boolean" }).notNull().default(true), createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  expiresAt: text("expires_at"), lastUsedAt: text("last_used_at"),
+});
+
+export const deviceSessions = sqliteTable("device_sessions", {
+  id: text("id").primaryKey(), keyId: text("key_id").notNull().references(() => accessKeys.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull().unique(), createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  lastUsedAt: text("last_used_at").notNull().default(sql`CURRENT_TIMESTAMP`), revokedAt: text("revoked_at"),
+});
+
+export const accessRateLimits = sqliteTable("access_rate_limits", {
+  key: text("key").primaryKey(), attempts: integer("attempts").notNull().default(0), windowStartedAt: text("window_started_at").notNull(),
+});

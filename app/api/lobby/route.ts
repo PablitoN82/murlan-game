@@ -2,8 +2,10 @@ import { desc, gt } from "drizzle-orm";
 import { getDb } from "../../../db";
 import { lobbyMessages } from "../../../db/schema";
 import { isValidRoomCode, normalizePlayerName, normalizeRoomCode } from "../../../lib/room-security";
+import { requireAccess } from "../../../lib/access";
 
 export async function GET(request: Request) {
+  await requireAccess(request);
   const since = Number(new URL(request.url).searchParams.get("since") ?? 0);
   const db = getDb();
   const rows = since > 0
@@ -14,6 +16,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    await requireAccess(request);
     const body = await request.json() as { name?: string; text?: string; roomCode?: string };
     const name = normalizePlayerName(body.name); const text = body.text?.trim().replace(/\s+/g, " ").slice(0, 240) ?? "";
     const roomCode = body.roomCode ? normalizeRoomCode(body.roomCode) : null;

@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { requireAccess } from "../../../lib/access";
 
 const targetNames = { it: "Italian", en: "English", es: "Spanish", sq: "Albanian" } as const;
 type Language = keyof typeof targetNames;
@@ -33,6 +34,7 @@ async function fallbackTranslate(text: string, target: Language) {
 
 export async function POST(request: Request) {
   try {
+    await requireAccess(request);
     const body = await request.json() as { text?: string; target?: keyof typeof targetNames };
     const text = body.text?.trim();
     if (!text || text.length > 500 || !body.target || !(body.target in targetNames)) {

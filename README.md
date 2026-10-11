@@ -98,7 +98,7 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 - [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
 # Access Key applicativa
 
-La pagina mostra esclusivamente la schermata neutra di accesso finché il dispositivo non presenta una Access Key valida. La chiave non viene mai salvata nel browser: il server conserva solo SHA-256 e crea il cookie HttpOnly `murlan_access`. La revoca della chiave revoca a cascata tutte le sessioni dispositivo.
+La pagina mostra esclusivamente la schermata neutra di accesso finché il dispositivo non presenta una Access Key valida nel formato `MURLAN-XXXX-XXXX-XXXX`. La chiave non viene mai salvata nel browser: il server conserva solo SHA-256 e crea il cookie HttpOnly `murlan_access`. La revoca della chiave revoca a cascata tutte le sessioni dispositivo.
 
 Migration: `drizzle/0004_access_keys.sql` (in produzione: `npx wrangler d1 migrations apply murlan-game-db --remote`).
 

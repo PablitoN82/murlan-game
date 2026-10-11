@@ -3,9 +3,8 @@ import { getDb } from "../../../db";
 import { accessKeys, accessRateLimits, deviceSessions } from "../../../db/schema";
 import { COOKIE, digest, cookieToken, requireAccess } from "../../../lib/access";
 
-const KEY = /^CAS-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+const KEY = /^MURLAN-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
 function clientIp(request: Request) { return request.headers.get("CF-Connecting-IP") ?? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown"; }
-function keyFormat() { const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; const bytes = crypto.getRandomValues(new Uint8Array(12)); let raw = ""; for (const b of bytes) raw += chars[b % chars.length]; return `CAS-${raw.slice(0,4)}-${raw.slice(4,8)}-${raw.slice(8)}`; }
 export async function GET(request: Request) { try { await requireAccess(request); return Response.json({ authorized: true }); } catch (e) { return e instanceof Response ? e : Response.json({ authorized: false }, { status: 503 }); } }
 export async function POST(request: Request) {
   try {
